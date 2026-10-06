@@ -702,86 +702,106 @@
 }
 
         function loadDaftarSiswaGuru() {
-            const kelas = document.getElementById("selectKelasGuru").value;
-            const mapel = document.getElementById("selectMapelGuru").value;
-            const tbody = document.getElementById("tableBodyNilaiGuru");
+    const kelas = document.getElementById("selectKelasGuru").value;
+    const mapel = document.getElementById("selectMapelGuru").value;
+    const semester = document.getElementById("selectSemesterGuru") ? document.getElementById("selectSemesterGuru").value : "";
+    const tbody = document.getElementById("tableBodyNilaiGuru");
 
-            if (!kelas || !mapel) return;
+    if (!kelas || !mapel) return;
 
-            const DAFTAR_MAPEL_HEADER = [
-                "AGM", "PCSL", "BIND", "MTK", "BING", "PJOK", "SEJ", "SB", 
-                "IPA", "IPS", "BIO", "KIMIA", "FISIKA", "MATLAN", "BJPG", 
-                "PKWU", "SEJLNJT", "SOS", "EKO", "GEO", "INF"
-            ];
+    const DAFTAR_MAPEL_HEADER = [
+        "AGM", "PCSL", "BIND", "MTK", "BING", "PJOK", "SEJ", "SB", 
+        "IPA", "IPS", "BIO", "KIMIA", "FISIKA", "MATLAN", "BJPG", 
+        "PKWU", "SEJLNJT", "SOS", "EKO", "GEO", "INF"
+    ];
 
-            let targetHeader = String(mapel).trim().toUpperCase();
-            if (targetHeader.startsWith("AGM")) targetHeader = "AGM";
-            const mapelIndex = DAFTAR_MAPEL_HEADER.indexOf(targetHeader);
+    let targetHeader = String(mapel).trim().toUpperCase();
+    if (targetHeader.startsWith("AGM")) targetHeader = "AGM";
+    const mapelIndex = DAFTAR_MAPEL_HEADER.indexOf(targetHeader);
 
-            const isKelasX = kelas.toUpperCase().startsWith("X-") || kelas.toUpperCase() === "X";
+    const isKelasX = kelas.toUpperCase().startsWith("X-") || kelas.toUpperCase() === "X";
 
-            const tingkatKelas = kelas.split("-")[0].trim();
-            const totalSiswaAngkatan = masterData.leger.slice(1).filter(r => String(r[3]).trim().startsWith(tingkatKelas)).length;
-            const kuotaEligible40Pct = Math.floor(totalSiswaAngkatan * 0.40);
+    const tingkatKelas = kelas.split("-")[0].trim();
+    const totalSiswaAngkatan = masterData.leger.slice(1).filter(r => String(r[3]).trim().startsWith(tingkatKelas)).length;
+    const kuotaEligible40Pct = Math.floor(totalSiswaAngkatan * 0.40);
 
-            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-            document.getElementById("labelJumlahSiswa").innerText = `${siswaFiltered.length} Siswa`;
+    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    document.getElementById("labelJumlahSiswa").innerText = `${siswaFiltered.length} Siswa`;
 
-            tbody.innerHTML = "";
-            siswaFiltered.forEach((s, idx) => {
-                const nisn = s[0];
-                const nama = s[2];
-                const rank = parseInt(s[5]);
+    tbody.innerHTML = "";
+    siswaFiltered.forEach((s, idx) => {
+        const rawNisn = s[0];
+        // Memastikan NISN bersih dari petik dan tepat 10 digit untuk tampilan & pencarian
+        const nisn = String(rawNisn || "").replace(/^'/, "").trim().padStart(10, "0");
+        const nama = s[2];
+        const rank = parseInt(s[5]);
 
-                let badgeEligible = "";
-                if (isKelasX || isNaN(rank)) {
-                    badgeEligible = `<span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2.5 py-1 rounded-full">Belum Ada Peringkat</span>`;
-                } else if (rank <= kuotaEligible40Pct) {
-                    badgeEligible = `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-black px-2.5 py-1 rounded-full">Eligible SNBP (40%)</span>`;
-                } else {
-                    badgeEligible = `<span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2.5 py-1 rounded-full">Reguler</span>`;
-                }
-
-                let nilaiHistoriTerakhir = "-";
-                if (mapelIndex !== -1) {
-                    const startColIdx = 6 + (mapelIndex * 6);
-                    const endColIdx = startColIdx + 5;
-                    for (let c = endColIdx; c >= startColIdx; c--) {
-                        const val = s[c];
-                        if (val !== undefined && val !== "" && val !== null && parseFloat(val) > 0) {
-                            nilaiHistoriTerakhir = val;
-                            break;
-                        }
-                    }
-                }
-
-                const existing = masterData.inputNilai.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[3]).trim() === String(mapel).trim());
-                const n1 = existing ? existing[5] : "";
-                const n2 = existing ? existing[6] : "";
-                const n3 = existing ? existing[7] : "";
-                const n4 = existing ? existing[8] : "";
-                const nRata = existing ? existing[9] : "-";
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-indigo-50/50 transition row-siswa" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
-                        <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
-                        <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
-                        <td class="p-3 font-extrabold text-slate-900 border-r-2 border-slate-200">${nama}</td>
-                        <td class="p-3 text-center border-r-2 border-slate-200">
-                            <div class="font-extrabold text-xs mb-0.5">${isNaN(rank) ? '-' : 'Peringkat ' + rank}</div>
-                            ${badgeEligible}
-                        </td>
-                        <td class="p-3 text-center font-black bg-amber-50 text-amber-950 border-r-2 border-slate-200">${nilaiHistoriTerakhir}</td>
-                        <td class="p-3 text-center border-r-2 border-slate-200 col-n1"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center border-r-2 border-slate-200 col-n2"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center border-r-2 border-slate-200 col-n3"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center border-r-2 border-slate-200 col-n4"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center font-black text-indigo-900 border-r-2 border-slate-200 text-base" id="rata_${nisn}">${nRata}</td>
-                        <td class="p-3 text-center font-extrabold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
-                    </tr>
-                `;
-            });
+        let badgeEligible = "";
+        if (isKelasX || isNaN(rank)) {
+            badgeEligible = `<span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2.5 py-1 rounded-full">Belum Ada Peringkat</span>`;
+        } else if (rank <= kuotaEligible40Pct) {
+            badgeEligible = `<span class="bg-emerald-100 text-emerald-800 text-[11px] font-black px-2.5 py-1 rounded-full">Eligible SNBP (40%)</span>`;
+        } else {
+            badgeEligible = `<span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2.5 py-1 rounded-full">Reguler</span>`;
         }
+
+        let nilaiHistoriTerakhir = "-";
+        if (mapelIndex !== -1) {
+            const startColIdx = 6 + (mapelIndex * 6);
+            const endColIdx = startColIdx + 5;
+            for (let c = endColIdx; c >= startColIdx; c--) {
+                const val = s[c];
+                if (val !== undefined && val !== "" && val !== null && parseFloat(val) > 0) {
+                    nilaiHistoriTerakhir = val;
+                    break;
+                }
+            }
+        }
+
+        // ============================================================
+        // [PERBAIKAN UTAMA] Pencarian Nilai Terdaftar Secara Presisi
+        // ============================================================
+        const targetMapel = String(mapel).trim().toUpperCase();
+        const targetSemester = String(semester).trim();
+
+        const existing = (masterData.inputNilai || []).find(r => {
+            const rowNisn = String(r[0] || "").replace(/^'/, "").trim().padStart(10, "0");
+            const rowMapel = String(r[3] || "").trim().toUpperCase();
+            const rowSemester = String(r[4] || "").trim();
+
+            const isMatchMapel = rowMapel === targetMapel;
+            const isMatchNisn = rowNisn === nisn;
+            const isMatchSemester = targetSemester ? rowSemester === targetSemester : true;
+
+            return isMatchNisn && isMatchMapel && isMatchSemester;
+        });
+
+        const n1 = existing ? existing[5] : "";
+        const n2 = existing ? existing[6] : "";
+        const n3 = existing ? existing[7] : "";
+        const n4 = existing ? existing[8] : "";
+        const nRata = existing ? existing[9] : "-";
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-indigo-50/50 transition row-siswa" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
+                <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
+                <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
+                <td class="p-3 font-extrabold text-slate-900 border-r-2 border-slate-200">${nama}</td>
+                <td class="p-3 text-center border-r-2 border-slate-200">
+                    <div class="font-extrabold text-xs mb-0.5">${isNaN(rank) ? '-' : 'Peringkat ' + rank}</div>
+                    ${badgeEligible}
+                </td>
+                <td class="p-3 text-center font-black bg-amber-50 text-amber-950 border-r-2 border-slate-200">${nilaiHistoriTerakhir}</td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n1"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n2"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n3"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n4"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center font-black text-indigo-900 border-r-2 border-slate-200 text-base" id="rata_${nisn}">${nRata}</td>
+                <td class="p-3 text-center font-extrabold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
+            </tr>
+        `;
+    });
+}
 
         function loadTableSiswaWalas() {
             const kelas = document.getElementById("selectKelasWalas").value;
@@ -890,10 +910,21 @@
     let sheetData = [headers];
 
     siswaFiltered.forEach(s => {
-        sheetData.push([s[0], s[2], kelas, 0, 0, 0, ""]);
+        const nisnStr = String(s[0] || "").trim();
+        sheetData.push([nisnStr, s[2], kelas, 0, 0, 0, ""]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    // Buat worksheet dengan opsi raw: true
+    const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
+
+    // Kunci Tipe Sel Kolom A (NISN)
+    for (let i = 2; i <= sheetData.length; i++) {
+        const cellRef = `A${i}`;
+        if (ws[cellRef]) {
+            ws[cellRef].t = 's';
+            ws[cellRef].z = '@';
+        }
+    }
 
     ws['!cols'] = headers.map((h, colIdx) => {
         let maxLen = h.length;
@@ -907,6 +938,8 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Format Walas");
     XLSX.writeFile(wb, `Format_Walas_${kelas}.xlsx`);
+
+    showToast(`Template Walas Kelas ${kelas} berhasil diunduh!`, "success");
 }
 
         function handleImportFileWalas(event) {
@@ -917,11 +950,13 @@
     reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
+            // [PERBAIKAN 1] Tambahkan raw: false agar membaca teks terformat
+            const workbook = XLSX.read(data, { type: 'array', raw: false });
             
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            // [PERBAIKAN 2] Tambahkan raw: false pada konversi JSON
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
             if (rows.length <= 1) {
                 showToast("File kosong atau tidak berisi data walas!", "error");
@@ -933,7 +968,10 @@
                 const cols = rows[i];
                 if (!cols || cols.length < 3) continue;
 
-                const nisn = String(cols[0] || "").trim();
+                // [PERBAIKAN 3] Gunakan formatNISN() untuk memastikan NISN selalu 10 digit
+                const rawNisn = String(cols[0] || "").trim();
+                const nisn = formatNISN(rawNisn);
+
                 if (!nisn) continue;
 
                 dataWalasImport.push({
@@ -1122,16 +1160,31 @@
     const l3 = masterData.config.LABEL_COL3 || "NILAI_3";
     const l4 = masterData.config.LABEL_COL4 || "NILAI_4";
 
+    // 1. Susun baris Header
     let headers = ["NISN", "NAMA_SISWA", "KELAS", "MATA_PELAJARAN", "SEMESTER", l1, l2, l3, l4];
     let sheetData = [headers];
 
+    // 2. Masukkan data siswa (Paksa NISN menjadi String)
     siswaFiltered.forEach(s => {
-        sheetData.push([s[0], s[2], kelas, namaMapel, semAktif, "", "", "", ""]);
+        // Konversi NISN ke String murni agar angka 0 tidak terpotong oleh JavaScript
+        const nisnStr = String(s[0] || "").trim();
+        sheetData.push([nisnStr, s[2], kelas, namaMapel, semAktif, "", "", "", ""]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    // 3. Buat worksheet dengan opsi raw: true agar SheetJS tidak mengubah string angka menjadi number secara otomatis
+    const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // Autofit lebar kolom
+    // 4. MENGUNCI TIPE KOLOM A (NISN) MENJADI TEKS ('s')
+    // Perulangan dari baris ke-2 hingga baris terakhir
+    for (let i = 2; i <= sheetData.length; i++) {
+        const cellRef = `A${i}`;
+        if (ws[cellRef]) {
+            ws[cellRef].t = 's'; // 's' = String/Text type di SheetJS
+            ws[cellRef].z = '@'; // '@' = Pemformatan sel Teks di Microsoft Excel
+        }
+    }
+
+    // 5. Atur lebar kolom otomatis (Autofit)
     ws['!cols'] = headers.map((h, colIdx) => {
         let maxLen = h.length;
         sheetData.forEach(row => {
@@ -1141,9 +1194,12 @@
         return { wch: Math.max(maxLen + 4, 12) };
     });
 
+    // 6. Buat Workbook dan Unduh File .xlsx
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Format Nilai");
     XLSX.writeFile(wb, `Format_Nilai_${namaMapel}_${kelas}.xlsx`);
+
+    showToast(`Template Nilai ${namaMapel} (${kelas}) berhasil diunduh!`, "success");
 }
 
         function handleImportFile(event) {
@@ -1154,14 +1210,15 @@
     reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
+            // raw: false memastikan SheetJS membaca teks terformat dari sel Excel
+            const workbook = XLSX.read(data, { type: 'array', raw: false });
             
             // Ambil sheet pertama
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Konversi ke JSON Array of Arrays
-            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            // Konversi ke JSON Array of Arrays (raw: false agar nilai dibaca sebagai string sesuai format sel)
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
             if (rows.length <= 1) {
                 showToast("File kosong atau tidak berisi data nilai!", "error");
@@ -1174,7 +1231,10 @@
                 const cols = rows[i];
                 if (!cols || cols.length < 5) continue;
 
-                const nisn = String(cols[0] || "").trim();
+                // [PERBAIKAN] Terapkan formatNISN() agar NISN dipad otomatis menjadi 10 digit
+                const rawNisn = String(cols[0] || "").trim();
+                const nisn = formatNISN(rawNisn);
+                
                 if (!nisn) continue; // Abaikan baris kosong
 
                 dataImport.push({
@@ -1450,7 +1510,8 @@
 
     // 2. SUSUN DATA SISWA
     siswaFiltered.forEach((s, idx) => {
-        const nisn = s[0];
+        // [PERBAIKAN 1] Konversi NISN ke String murni agar angka 0 di depan terjaga
+        const nisn = String(s[0] || "").trim();
         const nama = s[2];
         let row = [idx + 1, nisn, nama, kelas];
 
@@ -1484,21 +1545,32 @@
         sheetData.push(row);
     });
 
-    // 3. BUAT WORKSHEET & WORKBOOK SHEETJS
-    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+    // 3. BUAT WORKSHEET DENGAN raw: true
+    // [PERBAIKAN 2] Menambahkan opsi { raw: true } agar SheetJS tidak mengubah string ke number otomatis
+    const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 4. ATUR LEBAR KOLOM OTOMATIS (AUTOFIT BASED ON CONTENT)
+    // 4. KUNCI FORMAT KOLOM B (NISN) MENJADI TEKS/STRING ('s')
+    // [PERBAIKAN 3] Iterasi setiap baris data di Kolom B (NISN)
+    for (let i = 2; i <= sheetData.length; i++) {
+        const cellRef = `B${i}`; // Kolom B adalah NISN
+        if (ws[cellRef]) {
+            ws[cellRef].t = 's'; // 's' = String/Text
+            ws[cellRef].z = '@'; // Format Text di Excel
+        }
+    }
+
+    // 5. ATUR LEBAR KOLOM OTOMATIS (AUTOFIT BASED ON CONTENT)
     const colWidths = headers.map((h, colIdx) => {
         let maxLen = h.length;
         sheetData.forEach(row => {
             const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
             if (val.length > maxLen) maxLen = val.length;
         });
-        return { wch: Math.max(maxLen + 3, 10) }; // Tambah margin padding
+        return { wch: Math.max(maxLen + 3, 10) };
     });
     ws['!cols'] = colWidths;
 
-    // 5. BUAT FILE EXCEL (.XLSX) DAN UNDUH
+    // 6. BUAT FILE EXCEL (.XLSX) DAN UNDUH
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Leger ${kelas}`);
 
@@ -1506,6 +1578,26 @@
 
     showToast(`Leger Nilai Excel (.xlsx) Kelas ${kelas} berhasil diunduh!`, "success");
 }
+        function formatNISN(nisn) {
+    let clean = String(nisn || "").trim();
+    if (!clean) return "";
+    return clean.padStart(10, "0");
+}
+        function findExistingNilai(masterInputNilai, nisn, kodeMapel, semester) {
+      if (!masterInputNilai || !Array.isArray(masterInputNilai)) return null;
+
+      const targetNisn = String(nisn || "").replace(/^'/, "").trim().padStart(10, "0");
+      const targetMapel = String(kodeMapel || "").trim().toUpperCase();
+      const targetSem = String(semester || "").trim();
+
+      return masterInputNilai.find(row => {
+          const rowNisn = String(row[0] || "").replace(/^'/, "").trim().padStart(10, "0");
+          const rowMapel = String(row[3] || "").trim().toUpperCase();
+          const rowSem = String(row[4] || "").trim();
+
+          return rowNisn === targetNisn && rowMapel === targetMapel && rowSem === targetSem;
+      });
+  }
     </script>
 </body>
 </html>
