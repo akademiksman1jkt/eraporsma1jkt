@@ -234,7 +234,7 @@
                         
                         <label class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-2 transition shadow">
                             <i class="fa-solid fa-file-import"></i> Upload Import
-                            <input type="file" id="fileInputNilai" accept=".csv" onchange="handleImportFile(event)" class="hidden">
+                            <input type="file" id="fileImportNilai" accept=".xlsx, .xls, .csv" onchange="handleImportFile(event)" class="hidden">
                         </label>
 
                         <button onclick="simpanSemuaNilaiBatch()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition">
@@ -295,12 +295,12 @@
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
                         <button onclick="downloadTemplateWalas()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center justify-center gap-2 transition shadow">
-                            <i class="fa-solid fa-file-excel"></i> Format CSV
+                            <i class="fa-solid fa-file-excel"></i> Format Import
                         </button>
                         
                         <label class="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl cursor-pointer flex items-center justify-center gap-2 transition shadow">
                             <i class="fa-solid fa-file-import"></i> Import Walas
-                            <input type="file" id="fileInputWalas" accept=".csv" onchange="handleImportWalasFile(event)" class="hidden">
+                            <input type="file" id="fileImportWalas" accept=".xlsx, .xls, .csv" onchange="handleImportFileWalas(event)" class="hidden">
                         </label>
 
                         <button onclick="simpanSemuaCatatanWalasBatch()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-extrabold px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-blue-200 transition">
@@ -909,62 +909,77 @@
     XLSX.writeFile(wb, `Format_Walas_${kelas}.xlsx`);
 }
 
-        function handleImportWalasFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        function handleImportFileWalas(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const text = e.target.result;
-                const lines = text.split("\n").filter(l => l.trim().length > 0);
-                
-                const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-                let dataWalas = [];
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
-                    if (cols.length >= 3) {
-                        dataWalas.push({
-                            nisn: cols[0],
-                            namaSiswa: cols[1],
-                            kelas: cols[2],
-                            walas: currentUser.namaGuru,
-                            semester: semAktif,
-                            sakit: cols[3] || 0,
-                            izin: cols[4] || 0,
-                            alpha: cols[5] || 0,
-                            catatan: cols[6] || ""
-                        });
-                    }
-                }
+            if (rows.length <= 1) {
+                showToast("File kosong atau tidak berisi data walas!", "error");
+                return;
+            }
 
-                if (dataWalas.length === 0) {
-                    showToast("File CSV kosong atau format tidak sesuai!", "error");
-                    return;
-                }
+            let dataWalasImport = [];
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 3) continue;
 
-                showConfirmModal("Import Catatan Walas", `Apakah Anda yakin ingin mengimpor ${dataWalas.length} data catatan walas?`, async () => {
-                    const formData = new URLSearchParams();
-                    formData.append("action", "simpanCatatanWalasBatch");
-                    formData.append("dataWalas", JSON.stringify(dataWalas));
+                const nisn = String(cols[0] || "").trim();
+                if (!nisn) continue;
 
-                    try {
-                        const res = await fetch(API_URL, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                            body: formData.toString()
-                        });
-                        const json = await res.json();
-                        showToast(json.message, "success");
-                        await loadInitialData();
-                        loadTableSiswaWalas();
-                    } catch (err) {
-                        showToast("Gagal mengimpor catatan wali kelas!", "error");
-                    }
+                dataWalasImport.push({
+                    nisn: nisn,
+                    namaSiswa: String(cols[1] || "").trim(),
+                    kelas: String(cols[2] || "").trim(),
+                    sakit: cols[3] !== undefined ? String(cols[3]).trim() : "0",
+                    izin: cols[4] !== undefined ? String(cols[4]).trim() : "0",
+                    alpha: cols[5] !== undefined ? String(cols[5]).trim() : "0",
+                    catatanWalas: cols[6] !== undefined ? String(cols[6]).trim() : ""
                 });
-            };
-            reader.readAsText(file);
+            }
+
+            if (dataWalasImport.length === 0) {
+                showToast("Tidak ada data valid yang dapat diimpor!", "error");
+                return;
+            }
+
+            showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
+                const formData = new URLSearchParams();
+                formData.append("action", "importWalasBatch");
+                formData.append("dataWalasImport", JSON.stringify(dataWalasImport));
+
+                try {
+                    const res = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: formData.toString()
+                    });
+                    const json = await res.json();
+                    showToast(json.message, "success");
+                    await loadInitialData();
+                    loadDaftarSiswaWalas();
+                } catch (err) {
+                    showToast("Gagal mengimpor data presensi walas!", "error");
+                }
+            });
+
+        } catch (err) {
+            showToast("Gagal membaca file Excel/CSV walas!", "error");
         }
+    };
+
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
+}
 
         function hitungRataAuto(nisn, nilaiLalu) {
             const v1 = parseFloat(document.getElementById(`n1_${nisn}`).value);
@@ -1132,59 +1147,83 @@
 }
 
         function handleImportFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const text = e.target.result;
-                const lines = text.split("\n").filter(l => l.trim().length > 0);
-                
-                let dataImport = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
-                    if (cols.length >= 5) {
-                        dataImport.push({
-                            nisn: cols[0],
-                            namaSiswa: cols[1],
-                            kelas: cols[2],
-                            mapel: cols[3],
-                            semester: cols[4],
-                            nilai1: cols[5] || "",
-                            nilai2: cols[6] || "",
-                            nilai3: cols[7] || "",
-                            nilai4: cols[8] || ""
-                        });
-                    }
-                }
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            
+            // Ambil sheet pertama
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Konversi ke JSON Array of Arrays
+            const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                if (dataImport.length === 0) {
-                    showToast("File kosong atau format CSV tidak sesuai!", "error");
-                    return;
-                }
+            if (rows.length <= 1) {
+                showToast("File kosong atau tidak berisi data nilai!", "error");
+                return;
+            }
 
-                showConfirmModal("Import Nilai", `Apakah Anda yakin ingin mengimpor ${dataImport.length} data nilai?`, async () => {
-                    const formData = new URLSearchParams();
-                    formData.append("action", "importNilaiBatch");
-                    formData.append("dataImport", JSON.stringify(dataImport));
+            let dataImport = [];
+            // Mulai dari baris ke-2 (mengabaikan header)
+            for (let i = 1; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 5) continue;
 
-                    try {
-                        const res = await fetch(API_URL, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                            body: formData.toString()
-                        });
-                        const json = await res.json();
-                        showToast(json.message, "success");
-                        await loadInitialData();
-                        loadDaftarSiswaGuru();
-                    } catch (err) {
-                        showToast("Gagal mengimpor data nilai!", "error");
-                    }
+                const nisn = String(cols[0] || "").trim();
+                if (!nisn) continue; // Abaikan baris kosong
+
+                dataImport.push({
+                    nisn: nisn,
+                    namaSiswa: String(cols[1] || "").trim(),
+                    kelas: String(cols[2] || "").trim(),
+                    mapel: String(cols[3] || "").trim(),
+                    semester: String(cols[4] || "").trim(),
+                    nilai1: cols[5] !== undefined ? String(cols[5]).trim() : "",
+                    nilai2: cols[6] !== undefined ? String(cols[6]).trim() : "",
+                    nilai3: cols[7] !== undefined ? String(cols[7]).trim() : "",
+                    nilai4: cols[8] !== undefined ? String(cols[8]).trim() : ""
                 });
-            };
-            reader.readAsText(file);
+            }
+
+            if (dataImport.length === 0) {
+                showToast("Tidak ada data valid yang dapat diimpor!", "error");
+                return;
+            }
+
+            showConfirmModal("Import Nilai Excel", `Apakah Anda yakin ingin mengimpor ${dataImport.length} data nilai siswa?`, async () => {
+                const formData = new URLSearchParams();
+                formData.append("action", "importNilaiBatch");
+                formData.append("dataImport", JSON.stringify(dataImport));
+
+                try {
+                    const res = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: formData.toString()
+                    });
+                    const json = await res.json();
+                    showToast(json.message, "success");
+                    await loadInitialData();
+                    loadDaftarSiswaGuru();
+                } catch (err) {
+                    showToast("Gagal mengimpor data nilai!", "error");
+                }
+            });
+
+        } catch (err) {
+            showToast("Gagal membaca file Excel/CSV! Pastikan format file sesuai.", "error");
         }
+    };
+
+    reader.readAsArrayBuffer(file);
+    // Reset nilai input agar file yang sama bisa diunggah ulang jika diperlukan
+    event.target.value = "";
+}
 
         function toggleModeCetakUI() {
             const mode = document.getElementById("selectModeCetak").value;
