@@ -344,7 +344,27 @@
                     <h3 class="font-bold text-slate-800 text-base border-b pb-3 flex items-center gap-2">
                         <i class="fa-solid fa-sliders text-indigo-600 text-lg"></i> Panel Kontrol Pengaturan Admin
                     </h3>
-                    
+                    <!-- DOKUMEN / FITUR EKSPOR LEGER LENGKAP -->
+<div class="border-t border-slate-200 pt-5 space-y-4">
+    <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+        <i class="fa-solid fa-file-csv text-emerald-600"></i> Ekspor Leger Nilai Kelas (Semua Mapel)
+    </h4>
+    <p class="text-xs text-slate-500">
+        Unduh seluruh akumulasi nilai siswa (semua TP/Kolom Nilai & Rata-rata Mapel) dalam satu file CSV/Excel rapi berdasarkan kelas.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-3 items-end">
+        <div class="flex-1 w-full">
+            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Kelas</label>
+            <select id="selectKelasEksporLeger" class="w-full p-3 border-2 border-slate-300 rounded-xl bg-slate-50 font-bold text-sm outline-none focus:border-indigo-600">
+                <option value="">-- Pilih Kelas --</option>
+            </select>
+        </div>
+        <button onclick="eksporLegerNilaiKelas()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2">
+            <i class="fa-solid fa-file-excel text-base"></i> Ekspor Leger Nilai (CSV)
+        </button>
+    </div>
+</div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Atur Semester Aktif Global</label>
@@ -520,113 +540,123 @@
         }
 
         async function loadInitialData() {
-            try {
-                const res = await fetch(`${API_URL}?action=getDataLeger`);
-                const json = await res.json();
-                masterData.leger = json.data || [];
-                masterData.inputNilai = json.inputNilai || [];
-                masterData.extra = json.extra || [];
-                masterData.walasPlotting = json.walasPlotting || [];
-                masterData.config = json.config || {};
+    try {
+        const res = await fetch(`${API_URL}?action=getDataLeger`);
+        const json = await res.json();
+        masterData.leger = json.data || [];
+        masterData.inputNilai = json.inputNilai || [];
+        masterData.extra = json.extra || [];
+        masterData.walasPlotting = json.walasPlotting || [];
+        masterData.config = json.config || {};
 
-                const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-                document.getElementById("displaySemester").value = `Semester ${semAktif}`;
+        const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+        document.getElementById("displaySemester").value = `Semester ${semAktif}`;
 
-                if (masterData.config.LABEL_COL1) document.getElementById("labelCol1").value = masterData.config.LABEL_COL1;
-                if (masterData.config.LABEL_COL2) document.getElementById("labelCol2").value = masterData.config.LABEL_COL2;
-                if (masterData.config.LABEL_COL3) document.getElementById("labelCol3").value = masterData.config.LABEL_COL3;
-                if (masterData.config.LABEL_COL4) document.getElementById("labelCol4").value = masterData.config.LABEL_COL4;
+        if (masterData.config.LABEL_COL1) document.getElementById("labelCol1").value = masterData.config.LABEL_COL1;
+        if (masterData.config.LABEL_COL2) document.getElementById("labelCol2").value = masterData.config.LABEL_COL2;
+        if (masterData.config.LABEL_COL3) document.getElementById("labelCol3").value = masterData.config.LABEL_COL3;
+        if (masterData.config.LABEL_COL4) document.getElementById("labelCol4").value = masterData.config.LABEL_COL4;
 
-                document.getElementById("th_col1").innerText = masterData.config.LABEL_COL1 || "Nilai 1";
-                document.getElementById("th_col2").innerText = masterData.config.LABEL_COL2 || "Nilai 2";
-                document.getElementById("th_col3").innerText = masterData.config.LABEL_COL3 || "Nilai 3";
-                document.getElementById("th_col4").innerText = masterData.config.LABEL_COL4 || "Nilai 4";
+        document.getElementById("th_col1").innerText = masterData.config.LABEL_COL1 || "Nilai 1";
+        document.getElementById("th_col2").innerText = masterData.config.LABEL_COL2 || "Nilai 2";
+        document.getElementById("th_col3").innerText = masterData.config.LABEL_COL3 || "Nilai 3";
+        document.getElementById("th_col4").innerText = masterData.config.LABEL_COL4 || "Nilai 4";
 
-                const selMapel = document.getElementById("selectMapelGuru");
-                const selKelasGuru = document.getElementById("selectKelasGuru");
-                const selKelasWalas = document.getElementById("selectKelasWalas");
-                const selKelasCetak = document.getElementById("selectKelasCetak");
+        const selMapel = document.getElementById("selectMapelGuru");
+        const selKelasGuru = document.getElementById("selectKelasGuru");
+        const selKelasWalas = document.getElementById("selectKelasWalas");
+        const selKelasCetak = document.getElementById("selectKelasCetak");
+        const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger"); // REFF ELEMEN EKSPOR LEGER
 
-                selMapel.innerHTML = '<option value="">-- Pilih Mapel --</option>';
-                selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-                selKelasWalas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-                selKelasCetak.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        selMapel.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+        selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        selKelasWalas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        selKelasCetak.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        
+        if (selKelasEksporLeger) {
+            selKelasEksporLeger.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        }
 
-                const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
-                const isAdmin = String(currentUser.role).toLowerCase() === "admin";
+        const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
+        const isAdmin = String(currentUser.role).toLowerCase() === "admin";
 
-                const myWalasRows = masterData.walasPlotting.slice(1).filter(r => {
-                    const nipWalas = String(r[1] || "").trim();
-                    const namaWalas = String(r[2] || "").trim().toLowerCase();
-                    const curUser = String(currentUser.username || "").trim();
-                    const curNama = String(currentUser.namaGuru || "").trim().toLowerCase();
+        const myWalasRows = masterData.walasPlotting.slice(1).filter(r => {
+            const nipWalas = String(r[1] || "").trim();
+            const namaWalas = String(r[2] || "").trim().toLowerCase();
+            const curUser = String(currentUser.username || "").trim();
+            const curNama = String(currentUser.namaGuru || "").trim().toLowerCase();
 
-                    return (nipWalas && nipWalas === curUser) || (namaWalas && namaWalas.includes(curNama));
-                });
+            return (nipWalas && nipWalas === curUser) || (namaWalas && namaWalas.includes(curNama));
+        });
 
-                const isWaliKelas = myWalasRows.length > 0;
+        const isWaliKelas = myWalasRows.length > 0;
 
-                // NAVIGASI DYNAMIC HAK AKSES
-                const btnTabWalas = document.getElementById("btnTabWalas");
-                const btnTabCetak = document.getElementById("btnTabCetak");
-                const btnTabAdmin = document.getElementById("btnTabAdmin");
+        // NAVIGASI DYNAMIC HAK AKSES
+        const btnTabWalas = document.getElementById("btnTabWalas");
+        const btnTabCetak = document.getElementById("btnTabCetak");
+        const btnTabAdmin = document.getElementById("btnTabAdmin");
 
-                if (isAdmin) {
-                    btnTabWalas.classList.remove("hidden");
-                    btnTabCetak.classList.remove("hidden");
-                    btnTabAdmin.classList.remove("hidden");
-                } else if (isWaliKelas) {
-                    btnTabWalas.classList.remove("hidden");
-                    btnTabCetak.classList.remove("hidden");
-                    btnTabAdmin.classList.add("hidden");
-                } else {
-                    btnTabWalas.classList.add("hidden");
-                    btnTabCetak.classList.add("hidden");
-                    btnTabAdmin.classList.add("hidden");
+        if (isAdmin) {
+            btnTabWalas.classList.remove("hidden");
+            btnTabCetak.classList.remove("hidden");
+            btnTabAdmin.classList.remove("hidden");
+        } else if (isWaliKelas) {
+            btnTabWalas.classList.remove("hidden");
+            btnTabCetak.classList.remove("hidden");
+            btnTabAdmin.classList.add("hidden");
+        } else {
+            btnTabWalas.classList.add("hidden");
+            btnTabCetak.classList.add("hidden");
+            btnTabAdmin.classList.add("hidden");
+        }
+
+        switchTab('inputNilaiTab');
+
+        if (isAdmin) {
+            Object.keys(MASTER_MAPEL_NAME).forEach(code => {
+                selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
+            });
+            allKelasList.forEach(k => {
+                selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
+                selKelasWalas.innerHTML += `<option value="${k}">${k}</option>`;
+                selKelasCetak.innerHTML += `<option value="${k}">${k}</option>`;
+                
+                // ISI KELAS UNTUK EKSPOR LEGER ADMIN
+                if (selKelasEksporLeger) {
+                    selKelasEksporLeger.innerHTML += `<option value="${k}">${k}</option>`;
                 }
+            });
+        } else {
+            const guruMapels = String(currentUser.mapelPlotting || "").split(",").map(m => m.trim());
+            const guruKelases = String(currentUser.kelasPlotting || "").split(",").map(k => k.trim());
 
-                switchTab('inputNilaiTab');
+            guruMapels.forEach(code => {
+                if (code && MASTER_MAPEL_NAME[code]) {
+                    selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
+                } else if (code) {
+                    selMapel.innerHTML += `<option value="${code}">${code}</option>`;
+                }
+            });
 
-                if (isAdmin) {
-                    Object.keys(MASTER_MAPEL_NAME).forEach(code => {
-                        selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
-                    });
-                    allKelasList.forEach(k => {
-                        selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
-                        selKelasWalas.innerHTML += `<option value="${k}">${k}</option>`;
-                        selKelasCetak.innerHTML += `<option value="${k}">${k}</option>`;
-                    });
-                } else {
-                    const guruMapels = String(currentUser.mapelPlotting || "").split(",").map(m => m.trim());
-                    const guruKelases = String(currentUser.kelasPlotting || "").split(",").map(k => k.trim());
+            guruKelases.forEach(k => {
+                if (k) selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
+            });
 
-                    guruMapels.forEach(code => {
-                        if (code && MASTER_MAPEL_NAME[code]) {
-                            selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
-                        } else if (code) {
-                            selMapel.innerHTML += `<option value="${code}">${code}</option>`;
-                        }
-                    });
-
-                    guruKelases.forEach(k => {
-                        if (k) selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
-                    });
-
-                    if (isWaliKelas) {
-                        myWalasRows.forEach(row => {
-                            const kelasBinaan = row[0];
-                            if (kelasBinaan) {
-                                selKelasWalas.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                                selKelasCetak.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                            }
-                        });
+            if (isWaliKelas) {
+                myWalasRows.forEach(row => {
+                    const kelasBinaan = row[0];
+                    if (kelasBinaan) {
+                        selKelasWalas.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                        selKelasCetak.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
                     }
-                }
-
-            } catch (err) {
-                showToast("Gagal memuat data dari server!", "error");
+                });
             }
         }
+
+    } catch (err) {
+        showToast("Gagal memuat data dari server!", "error");
+    }
+}
 
         function loadDaftarSiswaGuru() {
             const kelas = document.getElementById("selectKelasGuru").value;
@@ -806,28 +836,31 @@
         }
 
         function downloadTemplateWalas() {
-            const kelas = document.getElementById("selectKelasWalas").value;
-            if (!kelas) {
-                showToast("Silakan pilih Kelas Binaan Wali Kelas terlebih dahulu!", "warning");
-                return;
-            }
+    const kelas = document.getElementById("selectKelasWalas").value;
+    if (!kelas) {
+        showToast("Silakan pilih Kelas Binaan Wali Kelas terlebih dahulu!", "warning");
+        return;
+    }
 
-            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "NISN,NAMA_SISWA,KELAS,SAKIT,IZIN,ALPHA,CATATAN_WALAS\n";
+    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    
+    // TAMBAHKAN BOM (\uFEFF) AGAR RAPIDAN DIBUKA DI EXCEL
+    let csvContent = "\uFEFF";
+    csvContent += "NISN,NAMA_SISWA,KELAS,SAKIT,IZIN,ALPHA,CATATAN_WALAS\n";
 
-            siswaFiltered.forEach(s => {
-                csvContent += `"${s[0]}","${s[2]}","${kelas}","0","0","0",""\n`;
-            });
+    siswaFiltered.forEach(s => {
+        csvContent += `"${s[0]}","${s[2]}","${kelas}","0","0","0",""\n`;
+    });
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Format_Walas_${kelas}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Format_Walas_${kelas}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
         function handleImportWalasFile(event) {
             const file = event.target.files[0];
@@ -1007,41 +1040,43 @@
         }
 
         function downloadTemplateImport() {
-            const kelasSelect = document.getElementById("selectKelasGuru");
-            const mapelSelect = document.getElementById("selectMapelGuru");
+    const kelasSelect = document.getElementById("selectKelasGuru");
+    const mapelSelect = document.getElementById("selectMapelGuru");
 
-            const kelas = kelasSelect.value;
-            const kodeMapel = mapelSelect.value;
-            const namaMapel = mapelSelect.options[mapelSelect.selectedIndex].text;
+    const kelas = kelasSelect.value;
+    const kodeMapel = mapelSelect.value;
+    const namaMapel = mapelSelect.options[mapelSelect.selectedIndex].text;
 
-            if (!kelas || !kodeMapel) {
-                showToast("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!", "warning");
-                return;
-            }
+    if (!kelas || !kodeMapel) {
+        showToast("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!", "warning");
+        return;
+    }
 
-            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-            
-            let csvContent = "data:text/csv;charset=utf-8,";
-            const l1 = masterData.config.LABEL_COL1 || "NILAI_1";
-            const l2 = masterData.config.LABEL_COL2 || "NILAI_2";
-            const l3 = masterData.config.LABEL_COL3 || "NILAI_3";
-            const l4 = masterData.config.LABEL_COL4 || "NILAI_4";
+    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    
+    // TAMBAHKAN BOM (\uFEFF) AGAR RAPIDAN DIBUKA DI EXCEL
+    let csvContent = "\uFEFF";
+    const l1 = masterData.config.LABEL_COL1 || "NILAI_1";
+    const l2 = masterData.config.LABEL_COL2 || "NILAI_2";
+    const l3 = masterData.config.LABEL_COL3 || "NILAI_3";
+    const l4 = masterData.config.LABEL_COL4 || "NILAI_4";
 
-            csvContent += `NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,${l1},${l2},${l3},${l4}\n`;
+    csvContent += `NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,${l1},${l2},${l3},${l4}\n`;
 
-            const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-            siswaFiltered.forEach(s => {
-                csvContent += `"${s[0]}","${s[2]}","${kelas}","${namaMapel}","${semAktif}","","","",""\n`;
-            });
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+    siswaFiltered.forEach(s => {
+        csvContent += `"${s[0]}","${s[2]}","${kelas}","${namaMapel}","${semAktif}","","","",""\n`;
+    });
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Format_Nilai_${namaMapel}_${kelas}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Format_Nilai_${namaMapel}_${kelas}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
         function handleImportFile(event) {
             const file = event.target.files[0];
@@ -1281,6 +1316,89 @@
                 activeBtn.classList.remove("hover:bg-slate-100", "text-slate-600");
             }
         }
+        function eksporLegerNilaiKelas() {
+    const kelas = document.getElementById("selectKelasEksporLeger").value;
+    if (!kelas) {
+        showToast("Silakan pilih kelas yang ingin diekspor terlebih dahulu!", "warning");
+        return;
+    }
+
+    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    if (siswaFiltered.length === 0) {
+        showToast("Tidak ada data siswa ditemukan untuk kelas ini!", "error");
+        return;
+    }
+
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+    const l1 = masterData.config.LABEL_COL1 || "N1";
+    const l2 = masterData.config.LABEL_COL2 || "N2";
+    const l3 = masterData.config.LABEL_COL3 || "N3";
+    const l4 = masterData.config.LABEL_COL4 || "N4";
+
+    // Daftar Semua Kode Mapel
+    const listMapelCodes = Object.keys(MASTER_MAPEL_NAME);
+
+    // 1. HEADER LEGER
+    let csvContent = "\uFEFF"; // BOM UTF-8 agar rapi otomatis di Excel
+    let headerRow = "NO,NISN,NAMA SISWA,KELAS";
+
+    // Susun Header Kolom per Mapel (TP1, TP2, TP3, TP4, RATA-RATA)
+    listMapelCodes.forEach(code => {
+        headerRow += `,"${code} (${l1})","${code} (${l2})","${code} (${l3})","${code} (${l4})","RATA ${code}"`;
+    });
+    headerRow += ",\"RATA-RATA KESELURUHAN\"\n";
+    csvContent += headerRow;
+
+    // 2. BARIS DATA SISWA
+    siswaFiltered.forEach((s, idx) => {
+        const nisn = s[0];
+        const nama = s[2];
+        let rowStr = `"${idx + 1}","${nisn}","${nama}","${kelas}"`;
+
+        let totalRataMapelSiswa = 0;
+        let jumlahMapelTerisi = 0;
+
+        listMapelCodes.forEach(code => {
+            // Cari data input nilai siswa berdasarkan NISN, Semester, dan Mapel
+            const itemNilai = masterData.inputNilai.find(r => 
+                String(r[0]).trim() === String(nisn).trim() && 
+                String(r[3]).trim() === String(code).trim() && 
+                String(r[4]).trim() === String(semAktif).trim()
+            );
+
+            const n1 = itemNilai ? (itemNilai[5] || "") : "";
+            const n2 = itemNilai ? (itemNilai[6] || "") : "";
+            const n3 = itemNilai ? (itemNilai[7] || "") : "";
+            const n4 = itemNilai ? (itemNilai[8] || "") : "";
+            const nRata = itemNilai ? (itemNilai[9] || "") : "";
+
+            rowStr += `,"${n1}","${n2}","${n3}","${n4}","${nRata}"`;
+
+            if (nRata !== "" && !isNaN(parseFloat(nRata))) {
+                totalRataMapelSiswa += parseFloat(nRata);
+                jumlahMapelTerisi++;
+            }
+        });
+
+        // Hitung Rata-Rata Gabungan Semua Mapel untuk Siswa
+        const rataKeseluruhan = jumlahMapelTerisi > 0 ? (totalRataMapelSiswa / jumlahMapelTerisi).toFixed(1) : "";
+        rowStr += `,"${rataKeseluruhan}"\n`;
+
+        csvContent += rowStr;
+    });
+
+    // 3. GENERATE DOWNLOAD
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showToast(`Leger Nilai Kelas ${kelas} berhasil diekspor!`, "success");
+}
     </script>
 </body>
 </html>
