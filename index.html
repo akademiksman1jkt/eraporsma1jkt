@@ -27,7 +27,7 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxXeZjsGwnR2khGR2jYm2iQmRZOPVDUu7YtUWdU-GvI_kb4OobeK5J_Xc-mc0tqJIhHnA/exec";
         let currentUser = null;
-        let masterData = { leger: [], mapel: [], config: {} };
+        let masterData = { leger: [], inputNilai: [], extra: [], config: {} };
     </script>
 
     <!-- 1. HALAMAN LOGIN -->
@@ -38,7 +38,7 @@
                     <img src="https://iili.io/nnSW4xR.png" alt="Logo SMAN 1 Jakarta" class="max-h-full max-w-full object-contain drop-shadow">
                 </div>
                 <h1 class="text-2xl font-bold text-slate-900">e-Rapor PTS</h1>
-                <p class="text-sm text-slate-500 mt-1">Portal Input Nilai & Analytics PTS</p>
+                <p class="text-sm text-slate-500 mt-1">Portal Input Nilai & Analytics SMAN 1 Jakarta</p>
             </div>
 
             <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
@@ -123,11 +123,27 @@
                     </div>
                 </div>
 
+                <!-- Tombol Action Import CSV -->
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                    <div class="text-xs text-slate-500">
+                        <i class="fa-solid fa-info-circle text-indigo-600 mr-1"></i> Gunakan opsi import CSV untuk memasukkan nilai massal.
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="downloadTemplateImport()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition shadow">
+                            <i class="fa-solid fa-file-excel"></i> Download Format Import (.csv)
+                        </button>
+                        <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-1.5 transition shadow">
+                            <i class="fa-solid fa-file-import"></i> Upload / Import Nilai
+                            <input type="file" id="fileInputNilai" accept=".csv" onchange="handleImportFile(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Tabel Input Nilai Komparasi -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-chart-line text-indigo-600"></i> Data Nilai Siswa & Komparasi Tren
+                            <i class="fa-solid fa-chart-line text-indigo-600"></i> Data Nilai (Disimpan ke DB_Input_Nilai) & Analytics Tren
                         </h3>
                         <span id="labelJumlahSiswa" class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">0 Siswa</span>
                     </div>
@@ -138,27 +154,30 @@
                                     <th class="p-3 w-10 text-center">No</th>
                                     <th class="p-3">NISN</th>
                                     <th class="p-3">Nama Siswa</th>
-                                    <th class="p-3 text-center">Peringkat & Eligibilitas</th>
-                                    <th class="p-3 text-center">Nilai Semester Lalu</th>
-                                    <th class="p-3 w-28 text-center">Nilai PTS Baru</th>
-                                    <th class="p-3 text-center">Komparasi Tren</th>
-                                    <th class="p-3 text-center">Rata-Rata Kumulatif</th>
+                                    <th class="p-3 text-center">Peringkat & Eligible</th>
+                                    <th class="p-3 text-center bg-amber-50">Nilai Histori (Database_Web)</th>
+                                    <th class="p-3 text-center w-20">Nilai 1</th>
+                                    <th class="p-3 text-center w-20">Nilai 2</th>
+                                    <th class="p-3 text-center w-20">Nilai 3</th>
+                                    <th class="p-3 text-center w-20">Nilai 4</th>
+                                    <th class="p-3 text-center font-bold">Rata-Rata Input</th>
+                                    <th class="p-3 text-center">Tren Nilai</th>
                                     <th class="p-3 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBodyNilaiGuru" class="divide-y divide-slate-100">
-                                <tr><td colspan="9" class="p-6 text-center text-slate-400">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
+                                <tr><td colspan="12" class="p-6 text-center text-slate-400">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- TAB 2: ABSENSI & CATATAN WALI KELAS (AKSES GURU WALAS & ADMIN) -->
+            <!-- TAB 2: ABSENSI & CATATAN WALI KELAS -->
             <section id="inputWalasTab" class="tab-content hidden space-y-4">
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas Binaan</label>
                         <select id="selectKelasWalas" onchange="loadSiswaWalas()" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm bg-slate-50 outline-none">
                             <option value="">-- Pilih Kelas --</option>
                         </select>
@@ -191,10 +210,10 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Perkembangan Siswa</label>
-                        <textarea id="inputCatatanWalas" rows="3" class="w-full p-3 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tuliskan catatan motivasi belajar..."></textarea>
+                        <textarea id="inputCatatanWalas" rows="3" class="w-full p-3 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Tuliskan catatan perkembangan/motivasi siswa..."></textarea>
                     </div>
                     <button onclick="simpanDataWalas()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow transition">
-                        <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Absensi & Catatan
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Presensi & Catatan
                     </button>
                 </div>
             </section>
@@ -280,7 +299,7 @@
                 </div>
             </section>
 
-            <!-- TAB 4: PANEL ADMIN (PENGATURAN SEMESTER & KOLOM) -->
+            <!-- TAB 4: PANEL ADMIN -->
             <section id="adminTab" class="tab-content hidden space-y-4">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="font-bold text-slate-800 text-base border-b pb-2 flex items-center gap-2">
@@ -299,14 +318,16 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Mode Tanda Tangan Rapor</label>
-                            <select id="adminSignModeSelect" class="w-full p-2.5 border rounded-lg bg-slate-50">
-                                <option value="WALI_KELAS_SAJA">Wali Kelas Saja</option>
-                                <option value="KEDUANYA">Wali Kelas & Kepala Sekolah</option>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah Kolom Nilai Aktif Guru</label>
+                            <select id="adminKolomNilaiSelect" class="w-full p-2.5 border rounded-lg bg-slate-50">
+                                <option value="1">1 Kolom (Nilai PTS)</option>
+                                <option value="2">2 Kolom (Harian + PTS)</option>
+                                <option value="3">3 Kolom (N1, N2, PTS)</option>
+                                <option value="4">4 Kolom (N1, N2, N3, PTS)</option>
                             </select>
                         </div>
                     </div>
-                    <button onclick="saveAdminConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm">
+                    <button onclick="saveAdminConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
                         Simpan Pengaturan Admin
                     </button>
                 </div>
@@ -371,6 +392,8 @@
                 const res = await fetch(`${API_URL}?action=getDataLeger`);
                 const json = await res.json();
                 masterData.leger = json.data || [];
+                masterData.inputNilai = json.inputNilai || [];
+                masterData.extra = json.extra || [];
                 masterData.config = json.config || {};
 
                 const semAktif = masterData.config.SEMESTER_AKTIF || "1";
@@ -433,34 +456,42 @@
 
             tbody.innerHTML = "";
             siswaFiltered.forEach((s, idx) => {
+                const nisn = s[0];
+                const nama = s[2];
                 const rank = s[5] || "-";
-                const isEligible = parseInt(rank) <= 40; // Contoh Kuota Top 40% Eligible SNBP
+                const isEligible = parseInt(rank) <= 40;
                 const badgeEligible = isEligible 
                     ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Eligible SNBP</span>` 
                     : `<span class="bg-slate-100 text-slate-500 text-[10px] font-medium px-2 py-0.5 rounded-full">Reguler</span>`;
 
-                const nilaiLalu = s[6] || 75; // Contoh referensi semester terakhir
-                const avgKumulatif = s[4] || "-";
+                const nilaiLalu = s[6] || 75; // Nilai histori rujukan
+
+                // Cari data nilai existing di DB_Input_Nilai
+                const existing = masterData.inputNilai.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[3]).trim() === String(mapel).trim());
+                const n1 = existing ? existing[5] : "";
+                const n2 = existing ? existing[6] : "";
+                const n3 = existing ? existing[7] : "";
+                const n4 = existing ? existing[8] : "";
+                const nRata = existing ? existing[9] : "-";
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition">
                         <td class="p-3 text-center font-medium text-slate-500">${idx + 1}</td>
-                        <td class="p-3 font-mono text-xs">${s[0]}</td>
-                        <td class="p-3 font-semibold text-slate-800">${s[2]}</td>
+                        <td class="p-3 font-mono text-xs">${nisn}</td>
+                        <td class="p-3 font-semibold text-slate-800">${nama}</td>
                         <td class="p-3 text-center">
                             <div class="font-bold">Peringkat ${rank}</div>
                             ${badgeEligible}
                         </td>
-                        <td class="p-3 text-center font-semibold text-slate-600">${nilaiLalu}</td>
+                        <td class="p-3 text-center font-bold bg-amber-50 text-amber-900">${nilaiLalu}</td>
+                        <td class="p-3 text-center"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
+                        <td class="p-3 text-center"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
+                        <td class="p-3 text-center"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
+                        <td class="p-3 text-center"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
+                        <td class="p-3 text-center font-bold text-indigo-700" id="rata_${nisn}">${nRata}</td>
+                        <td class="p-3 text-center font-bold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
                         <td class="p-3 text-center">
-                            <input type="number" id="inputNilai_${s[0]}" oninput="hitungTren('${s[0]}', ${nilaiLalu})" class="w-20 p-1.5 border rounded text-center font-bold text-indigo-700 outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0-100">
-                        </td>
-                        <td class="p-3 text-center font-bold" id="labelTren_${s[0]}">
-                            <span class="text-slate-400">-</span>
-                        </td>
-                        <td class="p-3 text-center font-bold text-slate-700">${avgKumulatif}</td>
-                        <td class="p-3 text-center">
-                            <button onclick="simpanNilaiSingle('${s[0]}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded transition shadow">
+                            <button onclick="simpanNilaiSingle('${nisn}', '${nama}', '${kelas}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded transition shadow">
                                 <i class="fa-solid fa-save"></i>
                             </button>
                         </td>
@@ -469,34 +500,52 @@
             });
         }
 
-        function hitungTren(nisn, nilaiLalu) {
-            const inputVal = parseFloat(document.getElementById(`inputNilai_${nisn}`).value);
-            const label = document.getElementById(`labelTren_${nisn}`);
+        function hitungRataAuto(nisn, nilaiLalu) {
+            const v1 = parseFloat(document.getElementById(`n1_${nisn}`).value);
+            const v2 = parseFloat(document.getElementById(`n2_${nisn}`).value);
+            const v3 = parseFloat(document.getElementById(`n3_${nisn}`).value);
+            const v4 = parseFloat(document.getElementById(`n4_${nisn}`).value);
 
-            if (isNaN(inputVal)) {
-                label.innerHTML = `<span class="text-slate-400">-</span>`;
+            let vals = [v1, v2, v3, v4].filter(n => !isNaN(n));
+            const labelRata = document.getElementById(`rata_${nisn}`);
+            const labelTren = document.getElementById(`labelTren_${nisn}`);
+
+            if (vals.length === 0) {
+                labelRata.innerText = "-";
+                labelTren.innerHTML = `<span class="text-slate-400">-</span>`;
                 return;
             }
 
-            if (inputVal > nilaiLalu) {
-                label.innerHTML = `<span class="text-emerald-600 flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> +${(inputVal - nilaiLalu).toFixed(1)}</span>`;
-            } else if (inputVal < nilaiLalu) {
-                label.innerHTML = `<span class="text-rose-600 flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-down"></i> ${(inputVal - nilaiLalu).toFixed(1)}</span>`;
+            const rata = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+            labelRata.innerText = rata;
+
+            if (rata > nilaiLalu) {
+                labelTren.innerHTML = `<span class="text-emerald-600 flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> +${(rata - nilaiLalu).toFixed(1)}</span>`;
+            } else if (rata < nilaiLalu) {
+                labelTren.innerHTML = `<span class="text-rose-600 flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-down"></i> ${(rata - nilaiLalu).toFixed(1)}</span>`;
             } else {
-                label.innerHTML = `<span class="text-slate-500"><i class="fa-solid fa-minus"></i> Tetap</span>`;
+                labelTren.innerHTML = `<span class="text-slate-500"><i class="fa-solid fa-minus"></i> Tetap</span>`;
             }
         }
 
-        async function simpanNilaiSingle(nisn) {
-            const val = document.getElementById(`inputNilai_${nisn}`).value;
+        async function simpanNilaiSingle(nisn, namaSiswa, kelas) {
             const mapel = document.getElementById("selectMapelGuru").value;
+            const n1 = document.getElementById(`n1_${nisn}`).value;
+            const n2 = document.getElementById(`n2_${nisn}`).value;
+            const n3 = document.getElementById(`n3_${nisn}`).value;
+            const n4 = document.getElementById(`n4_${nisn}`).value;
 
             const formData = new URLSearchParams();
             formData.append("action", "simpanNilaiErapor");
             formData.append("nisn", nisn);
+            formData.append("namaSiswa", namaSiswa);
+            formData.append("kelas", kelas);
             formData.append("kodeMapel", mapel);
             formData.append("semester", "1");
-            formData.append("nilai", val);
+            formData.append("nilai1", n1);
+            formData.append("nilai2", n2);
+            formData.append("nilai3", n3);
+            formData.append("nilai4", n4);
 
             try {
                 const res = await fetch(API_URL, {
@@ -509,6 +558,92 @@
             } catch(err) {
                 alert("Gagal menyimpan nilai!");
             }
+        }
+
+        function downloadTemplateImport() {
+            const kelasSelect = document.getElementById("selectKelasGuru");
+            const mapelSelect = document.getElementById("selectMapelGuru");
+
+            const kelas = kelasSelect.value;
+            const kodeMapel = mapelSelect.value;
+            const namaMapel = mapelSelect.options[mapelSelect.selectedIndex].text;
+
+            if (!kelas || !kodeMapel) {
+                alert("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!");
+                return;
+            }
+
+            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+            
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,NILAI_1,NILAI_2,NILAI_3,NILAI_4\n";
+
+            siswaFiltered.forEach(s => {
+                csvContent += `"${s[0]}","${s[2]}","${kelas}","${namaMapel}","1","","","",""\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Format_Nilai_${namaMapel}_${kelas}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const text = e.target.result;
+                const lines = text.split("\n").filter(l => l.trim().length > 0);
+                
+                let dataImport = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
+                    if (cols.length >= 5) {
+                        dataImport.push({
+                            nisn: cols[0],
+                            namaSiswa: cols[1],
+                            kelas: cols[2],
+                            mapel: cols[3],
+                            semester: cols[4],
+                            nilai1: cols[5] || "",
+                            nilai2: cols[6] || "",
+                            nilai3: cols[7] || "",
+                            nilai4: cols[8] || ""
+                        });
+                    }
+                }
+
+                if (dataImport.length === 0) {
+                    alert("File kosong atau format CSV tidak sesuai!");
+                    return;
+                }
+
+                if (confirm(`Apakah Anda yakin ingin mengimpor ${dataImport.length} data nilai?`)) {
+                    const formData = new URLSearchParams();
+                    formData.append("action", "importNilaiBatch");
+                    formData.append("dataImport", JSON.stringify(dataImport));
+
+                    try {
+                        const res = await fetch(API_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                            body: formData.toString()
+                        });
+                        const json = await res.json();
+                        alert(json.message);
+                        await loadInitialData();
+                        loadDaftarSiswaGuru();
+                    } catch (err) {
+                        alert("Gagal mengimpor data nilai!");
+                    }
+                }
+            };
+            reader.readAsText(file);
         }
 
         function switchTab(tabId) {
