@@ -67,7 +67,7 @@
 
     <!-- 2. DASHBOARD UTAMA -->
     <div id="dashboardView" class="hidden flex-1 flex flex-col">
-        <!-- Navbar Header -->
+        <!-- Navbar Header Sticky -->
         <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-50">
             <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center gap-3">
@@ -104,6 +104,7 @@
 
             <!-- TAB 1: INPUT NILAI & ANALYTICS KOMPARASI -->
             <section id="inputNilaiTab" class="tab-content space-y-4">
+                <!-- Filter Top -->
                 <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Mata Pelajaran</label>
@@ -123,19 +124,26 @@
                     </div>
                 </div>
 
-                <!-- Tombol Action Import CSV -->
-                <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div class="text-xs text-slate-500">
-                        <i class="fa-solid fa-info-circle text-indigo-600 mr-1"></i> Gunakan opsi import CSV untuk memasukkan nilai massal.
+                <!-- STICKY / FREEZE ACTION BAR (Tombol Sejajar: Download, Upload, & SIMPAN SEMUA) -->
+                <div class="sticky top-[60px] z-40 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-md border border-indigo-100 flex flex-wrap items-center justify-between gap-3 transition">
+                    <div class="text-xs font-medium text-slate-600 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-indigo-600"></i>
+                        <span>Isi nilai siswa di bawah, lalu klik <b>Simpan Semua Nilai</b> di sebelah kanan.</span>
                     </div>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button onclick="downloadTemplateImport()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition shadow">
-                            <i class="fa-solid fa-file-excel"></i> Download Format Import (.csv)
+                            <i class="fa-solid fa-file-excel"></i> Download Format (.csv)
                         </button>
+                        
                         <label class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-2 rounded-lg cursor-pointer flex items-center gap-1.5 transition shadow">
                             <i class="fa-solid fa-file-import"></i> Upload / Import Nilai
                             <input type="file" id="fileInputNilai" accept=".csv" onchange="handleImportFile(event)" class="hidden">
                         </label>
+
+                        <!-- TOMBOL UNIK SIMPAN SEMUA NILAI KELAS -->
+                        <button onclick="simpanSemuaNilaiBatch()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1.5 shadow-lg shadow-blue-200 transition transform hover:-translate-y-0.5">
+                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i> SIMPAN SEMUA NILAI KELAS
+                        </button>
                     </div>
                 </div>
 
@@ -143,7 +151,7 @@
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="fa-solid fa-chart-line text-indigo-600"></i> Data Nilai (Disimpan ke DB_Input_Nilai) & Analytics Tren
+                            <i class="fa-solid fa-chart-line text-indigo-600"></i> Data Nilai Siswa (Tersimpan ke DB_Input_Nilai)
                         </h3>
                         <span id="labelJumlahSiswa" class="text-xs bg-indigo-100 text-indigo-700 font-semibold px-2.5 py-1 rounded-full">0 Siswa</span>
                     </div>
@@ -155,18 +163,17 @@
                                     <th class="p-3">NISN</th>
                                     <th class="p-3">Nama Siswa</th>
                                     <th class="p-3 text-center">Peringkat & Eligible</th>
-                                    <th class="p-3 text-center bg-amber-50">Nilai Histori (Database_Web)</th>
-                                    <th class="p-3 text-center w-20">Nilai 1</th>
-                                    <th class="p-3 text-center w-20">Nilai 2</th>
-                                    <th class="p-3 text-center w-20">Nilai 3</th>
-                                    <th class="p-3 text-center w-20">Nilai 4</th>
+                                    <th class="p-3 text-center bg-amber-50 border-x border-amber-200">Nilai Histori (Database_Web)</th>
+                                    <th class="p-3 text-center w-20 col-n1" id="th_col1">Nilai 1</th>
+                                    <th class="p-3 text-center w-20 col-n2" id="th_col2">Nilai 2</th>
+                                    <th class="p-3 text-center w-20 col-n3" id="th_col3">Nilai 3</th>
+                                    <th class="p-3 text-center w-20 col-n4" id="th_col4">Nilai 4</th>
                                     <th class="p-3 text-center font-bold">Rata-Rata Input</th>
                                     <th class="p-3 text-center">Tren Nilai</th>
-                                    <th class="p-3 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody id="tableBodyNilaiGuru" class="divide-y divide-slate-100">
-                                <tr><td colspan="12" class="p-6 text-center text-slate-400">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
+                                <tr><td colspan="11" class="p-6 text-center text-slate-400">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -299,16 +306,18 @@
                 </div>
             </section>
 
-            <!-- TAB 4: PANEL ADMIN -->
-            <section id="adminTab" class="tab-content hidden space-y-4">
-                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <!-- TAB 4: PANEL ADMIN (PENGATURAN SEMESTER & CUSTOM KOLOM NILAI) -->
+            <section id="adminTab" class="tab-content hidden space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-6">
                     <h3 class="font-bold text-slate-800 text-base border-b pb-2 flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-600"></i> Kontrol Pengaturan Admin
+                        <i class="fa-solid fa-sliders text-indigo-600"></i> Kontrol Pengaturan Aplikasi (Admin)
                     </h3>
+                    
+                    <!-- PENGATURAN SEMESTER & TANDA TANGAN -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Atur Semester Aktif Global</label>
-                            <select id="adminSemesterSelect" class="w-full p-2.5 border rounded-lg bg-slate-50">
+                            <select id="adminSemesterSelect" class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50">
                                 <option value="1">Semester 1</option>
                                 <option value="2">Semester 2</option>
                                 <option value="3">Semester 3</option>
@@ -318,17 +327,54 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah Kolom Nilai Aktif Guru</label>
-                            <select id="adminKolomNilaiSelect" class="w-full p-2.5 border rounded-lg bg-slate-50">
-                                <option value="1">1 Kolom (Nilai PTS)</option>
-                                <option value="2">2 Kolom (Harian + PTS)</option>
-                                <option value="3">3 Kolom (N1, N2, PTS)</option>
-                                <option value="4">4 Kolom (N1, N2, N3, PTS)</option>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Mode Tanda Tangan Rapor</label>
+                            <select id="adminSignModeSelect" class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50">
+                                <option value="WALI_KELAS_SAJA">Wali Kelas Saja</option>
+                                <option value="KEDUANYA">Wali Kelas & Kepala Sekolah</option>
                             </select>
                         </div>
                     </div>
-                    <button onclick="saveAdminConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg text-sm transition">
-                        Simpan Pengaturan Admin
+
+                    <!-- FORM PENGATURAN FLEKSIBEL NAMA & JUMLAH KOLOM NILAI -->
+                    <div class="border-t pt-4 space-y-4">
+                        <h4 class="font-bold text-sm text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-table-columns text-indigo-600"></i> Kustomisasi Nama & Jumlah Kolom Nilai Guru
+                        </h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">Jumlah Kolom Nilai Aktif</label>
+                                <select id="adminJumlahKolomSelect" class="w-full p-2.5 border border-slate-300 rounded-lg bg-slate-50">
+                                    <option value="1">1 Kolom</option>
+                                    <option value="2">2 Kolom</option>
+                                    <option value="3">3 Kolom</option>
+                                    <option value="4" selected>4 Kolom</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Label Kolom 1</label>
+                                <input type="text" id="labelCol1" value="TP 1" class="w-full p-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Label Kolom 2</label>
+                                <input type="text" id="labelCol2" value="TP 2" class="w-full p-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Label Kolom 3</label>
+                                <input type="text" id="labelCol3" value="Tugas" class="w-full p-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block font-semibold text-slate-600 mb-1">Label Kolom 4</label>
+                                <input type="text" id="labelCol4" value="PTS" class="w-full p-2 border rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="saveAdminConfig()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm shadow transition">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Simpan Semua Pengaturan Admin
                     </button>
                 </div>
             </section>
@@ -399,6 +445,12 @@
                 const semAktif = masterData.config.SEMESTER_AKTIF || "1";
                 document.getElementById("displaySemester").value = `Semester ${semAktif}`;
 
+                // Update Header Labels Kolom Nilai dari Pengaturan Admin
+                document.getElementById("th_col1").innerText = masterData.config.LABEL_COL1 || "Nilai 1";
+                document.getElementById("th_col2").innerText = masterData.config.LABEL_COL2 || "Nilai 2";
+                document.getElementById("th_col3").innerText = masterData.config.LABEL_COL3 || "Nilai 3";
+                document.getElementById("th_col4").innerText = masterData.config.LABEL_COL4 || "Nilai 4";
+
                 const kelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
                 
                 const selKelasGuru = document.getElementById("selectKelasGuru");
@@ -464,9 +516,8 @@
                     ? `<span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Eligible SNBP</span>` 
                     : `<span class="bg-slate-100 text-slate-500 text-[10px] font-medium px-2 py-0.5 rounded-full">Reguler</span>`;
 
-                const nilaiLalu = s[6] || 75; // Nilai histori rujukan
+                const nilaiLalu = s[6] || 75;
 
-                // Cari data nilai existing di DB_Input_Nilai
                 const existing = masterData.inputNilai.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[3]).trim() === String(mapel).trim());
                 const n1 = existing ? existing[5] : "";
                 const n2 = existing ? existing[6] : "";
@@ -475,7 +526,7 @@
                 const nRata = existing ? existing[9] : "-";
 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-50 transition">
+                    <tr class="hover:bg-slate-50 transition row-siswa" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
                         <td class="p-3 text-center font-medium text-slate-500">${idx + 1}</td>
                         <td class="p-3 font-mono text-xs">${nisn}</td>
                         <td class="p-3 font-semibold text-slate-800">${nama}</td>
@@ -483,18 +534,13 @@
                             <div class="font-bold">Peringkat ${rank}</div>
                             ${badgeEligible}
                         </td>
-                        <td class="p-3 text-center font-bold bg-amber-50 text-amber-900">${nilaiLalu}</td>
-                        <td class="p-3 text-center"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
-                        <td class="p-3 text-center"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
-                        <td class="p-3 text-center"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
-                        <td class="p-3 text-center"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center"></td>
+                        <td class="p-3 text-center font-bold bg-amber-50 text-amber-900 border-x border-amber-200">${nilaiLalu}</td>
+                        <td class="p-3 text-center col-n1"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center font-semibold"></td>
+                        <td class="p-3 text-center col-n2"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center font-semibold"></td>
+                        <td class="p-3 text-center col-n3"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center font-semibold"></td>
+                        <td class="p-3 text-center col-n4"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiLalu})" class="w-14 p-1 border rounded text-center font-semibold"></td>
                         <td class="p-3 text-center font-bold text-indigo-700" id="rata_${nisn}">${nRata}</td>
                         <td class="p-3 text-center font-bold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
-                        <td class="p-3 text-center">
-                            <button onclick="simpanNilaiSingle('${nisn}', '${nama}', '${kelas}')" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-3 py-1.5 rounded transition shadow">
-                                <i class="fa-solid fa-save"></i>
-                            </button>
-                        </td>
                     </tr>
                 `;
             });
@@ -528,24 +574,83 @@
             }
         }
 
-        async function simpanNilaiSingle(nisn, namaSiswa, kelas) {
+        // FUNGSI SIMPAN MASSAL SEMUA NILAI KELAS (SATU KLIK)
+        async function simpanSemuaNilaiBatch() {
             const mapel = document.getElementById("selectMapelGuru").value;
-            const n1 = document.getElementById(`n1_${nisn}`).value;
-            const n2 = document.getElementById(`n2_${nisn}`).value;
-            const n3 = document.getElementById(`n3_${nisn}`).value;
-            const n4 = document.getElementById(`n4_${nisn}`).value;
+            const rows = document.querySelectorAll(".row-siswa");
+
+            if (!mapel || rows.length === 0) {
+                alert("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!");
+                return;
+            }
+
+            let dataNilai = [];
+            rows.forEach(r => {
+                const nisn = r.dataset.nisn;
+                const namaSiswa = r.dataset.nama;
+                const kelas = r.dataset.kelas;
+
+                const n1 = document.getElementById(`n1_${nisn}`).value;
+                const n2 = document.getElementById(`n2_${nisn}`).value;
+                const n3 = document.getElementById(`n3_${nisn}`).value;
+                const n4 = document.getElementById(`n4_${nisn}`).value;
+
+                dataNilai.push({
+                    nisn: nisn,
+                    namaSiswa: namaSiswa,
+                    kelas: kelas,
+                    kodeMapel: mapel,
+                    semester: "1",
+                    nilai1: n1,
+                    nilai2: n2,
+                    nilai3: n3,
+                    nilai4: n4
+                });
+            });
+
+            if (confirm(`Apakah Anda yakin ingin menyimpan nilai seluruh ${dataNilai.length} siswa di kelas ini?`)) {
+                const formData = new URLSearchParams();
+                formData.append("action", "simpanSemuaNilaiBatch");
+                formData.append("dataNilai", JSON.stringify(dataNilai));
+
+                try {
+                    const res = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                        body: formData.toString()
+                    });
+                    const json = await res.json();
+                    alert(json.message);
+                    await loadInitialData();
+                } catch(err) {
+                    alert("Gagal menyimpan nilai!");
+                }
+            }
+        }
+
+        // FUNGSI SIMPAN PENGATURAN ADMIN (TERMASUK LABEL KOLOM)
+        async function saveAdminConfig() {
+            const sem = document.getElementById("adminSemesterSelect").value;
+            const signMode = document.getElementById("adminSignModeSelect").value;
+            const numCols = document.getElementById("adminJumlahKolomSelect").value;
+            const l1 = document.getElementById("labelCol1").value;
+            const l2 = document.getElementById("labelCol2").value;
+            const l3 = document.getElementById("labelCol3").value;
+            const l4 = document.getElementById("labelCol4").value;
+
+            const configObj = {
+                SEMESTER_AKTIF: sem,
+                MODE_TANDA_TANGAN: signMode,
+                JUMLAH_KOLOM: numCols,
+                LABEL_COL1: l1,
+                LABEL_COL2: l2,
+                LABEL_COL3: l3,
+                LABEL_COL4: l4
+            };
 
             const formData = new URLSearchParams();
-            formData.append("action", "simpanNilaiErapor");
-            formData.append("nisn", nisn);
-            formData.append("namaSiswa", namaSiswa);
-            formData.append("kelas", kelas);
-            formData.append("kodeMapel", mapel);
-            formData.append("semester", "1");
-            formData.append("nilai1", n1);
-            formData.append("nilai2", n2);
-            formData.append("nilai3", n3);
-            formData.append("nilai4", n4);
+            formData.append("action", "updatePengaturan");
+            formData.append("configData", JSON.stringify(configObj));
 
             try {
                 const res = await fetch(API_URL, {
@@ -555,8 +660,9 @@
                 });
                 const json = await res.json();
                 alert(json.message);
+                await loadInitialData();
             } catch(err) {
-                alert("Gagal menyimpan nilai!");
+                alert("Gagal menyimpan pengaturan admin!");
             }
         }
 
@@ -576,7 +682,12 @@
             const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
             
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,NILAI_1,NILAI_2,NILAI_3,NILAI_4\n";
+            const l1 = masterData.config.LABEL_COL1 || "NILAI_1";
+            const l2 = masterData.config.LABEL_COL2 || "NILAI_2";
+            const l3 = masterData.config.LABEL_COL3 || "NILAI_3";
+            const l4 = masterData.config.LABEL_COL4 || "NILAI_4";
+
+            csvContent += `NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,${l1},${l2},${l3},${l4}\n`;
 
             siswaFiltered.forEach(s => {
                 csvContent += `"${s[0]}","${s[2]}","${kelas}","${namaMapel}","1","","","",""\n`;
