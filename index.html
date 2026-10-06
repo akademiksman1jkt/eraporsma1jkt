@@ -3,13 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal e-Rapor PTS - SMAN 1 Jakarta</title>
+    <title>Portal e-Rapor - SMAN 1 Jakarta</title>
     
     <!-- FAVICON LOGO SMAN 1 JAKARTA -->
     <link rel="icon" type="image/png" href="https://iili.io/nnSW4xR.png">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- SheetJS Library untuk Export File Excel .xlsx Asli -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -843,23 +847,27 @@
     }
 
     const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-    
-    // TAMBAHKAN BOM (\uFEFF) AGAR RAPIDAN DIBUKA DI EXCEL
-    let csvContent = "\uFEFF";
-    csvContent += "NISN,NAMA_SISWA,KELAS,SAKIT,IZIN,ALPHA,CATATAN_WALAS\n";
+    let headers = ["NISN", "NAMA_SISWA", "KELAS", "SAKIT", "IZIN", "ALPHA", "CATATAN_WALAS"];
+    let sheetData = [headers];
 
     siswaFiltered.forEach(s => {
-        csvContent += `"${s[0]}","${s[2]}","${kelas}","0","0","0",""\n`;
+        sheetData.push([s[0], s[2], kelas, 0, 0, 0, ""]);
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Format_Walas_${kelas}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    ws['!cols'] = headers.map((h, colIdx) => {
+        let maxLen = h.length;
+        sheetData.forEach(row => {
+            const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
+            if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.max(maxLen + 4, 12) };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Format Walas");
+    XLSX.writeFile(wb, `Format_Walas_${kelas}.xlsx`);
 }
 
         function handleImportWalasFile(event) {
@@ -1053,29 +1061,35 @@
     }
 
     const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-    
-    // TAMBAHKAN BOM (\uFEFF) AGAR RAPIDAN DIBUKA DI EXCEL
-    let csvContent = "\uFEFF";
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+
     const l1 = masterData.config.LABEL_COL1 || "NILAI_1";
     const l2 = masterData.config.LABEL_COL2 || "NILAI_2";
     const l3 = masterData.config.LABEL_COL3 || "NILAI_3";
     const l4 = masterData.config.LABEL_COL4 || "NILAI_4";
 
-    csvContent += `NISN,NAMA_SISWA,KELAS,MATA_PELAJARAN,SEMESTER,${l1},${l2},${l3},${l4}\n`;
+    let headers = ["NISN", "NAMA_SISWA", "KELAS", "MATA_PELAJARAN", "SEMESTER", l1, l2, l3, l4];
+    let sheetData = [headers];
 
-    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
     siswaFiltered.forEach(s => {
-        csvContent += `"${s[0]}","${s[2]}","${kelas}","${namaMapel}","${semAktif}","","","",""\n`;
+        sheetData.push([s[0], s[2], kelas, namaMapel, semAktif, "", "", "", ""]);
     });
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Format_Nilai_${namaMapel}_${kelas}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Autofit lebar kolom
+    ws['!cols'] = headers.map((h, colIdx) => {
+        let maxLen = h.length;
+        sheetData.forEach(row => {
+            const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
+            if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.max(maxLen + 4, 12) };
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Format Nilai");
+    XLSX.writeFile(wb, `Format_Nilai_${namaMapel}_${kelas}.xlsx`);
 }
 
         function handleImportFile(event) {
@@ -1335,44 +1349,44 @@
     const l3 = masterData.config.LABEL_COL3 || "N3";
     const l4 = masterData.config.LABEL_COL4 || "N4";
 
-    // Daftar Semua Kode Mapel
     const listMapelCodes = Object.keys(MASTER_MAPEL_NAME);
 
-    // 1. HEADER LEGER
-    let csvContent = "\uFEFF"; // BOM UTF-8 agar rapi otomatis di Excel
-    let headerRow = "NO,NISN,NAMA SISWA,KELAS";
-
-    // Susun Header Kolom per Mapel (TP1, TP2, TP3, TP4, RATA-RATA)
+    // 1. SUSUN HEADER TABEL
+    let headers = ["NO", "NISN", "NAMA SISWA", "KELAS"];
     listMapelCodes.forEach(code => {
-        headerRow += `,"${code} (${l1})","${code} (${l2})","${code} (${l3})","${code} (${l4})","RATA ${code}"`;
+        headers.push(`${code} (${l1})`);
+        headers.push(`${code} (${l2})`);
+        headers.push(`${code} (${l3})`);
+        headers.push(`${code} (${l4})`);
+        headers.push(`RATA ${code}`);
     });
-    headerRow += ",\"RATA-RATA KESELURUHAN\"\n";
-    csvContent += headerRow;
+    headers.push("RATA-RATA KESELURUHAN");
 
-    // 2. BARIS DATA SISWA
+    let sheetData = [headers];
+
+    // 2. SUSUN DATA SISWA
     siswaFiltered.forEach((s, idx) => {
         const nisn = s[0];
         const nama = s[2];
-        let rowStr = `"${idx + 1}","${nisn}","${nama}","${kelas}"`;
+        let row = [idx + 1, nisn, nama, kelas];
 
         let totalRataMapelSiswa = 0;
         let jumlahMapelTerisi = 0;
 
         listMapelCodes.forEach(code => {
-            // Cari data input nilai siswa berdasarkan NISN, Semester, dan Mapel
             const itemNilai = masterData.inputNilai.find(r => 
                 String(r[0]).trim() === String(nisn).trim() && 
                 String(r[3]).trim() === String(code).trim() && 
                 String(r[4]).trim() === String(semAktif).trim()
             );
 
-            const n1 = itemNilai ? (itemNilai[5] || "") : "";
-            const n2 = itemNilai ? (itemNilai[6] || "") : "";
-            const n3 = itemNilai ? (itemNilai[7] || "") : "";
-            const n4 = itemNilai ? (itemNilai[8] || "") : "";
-            const nRata = itemNilai ? (itemNilai[9] || "") : "";
+            const n1 = itemNilai && itemNilai[5] !== "" ? parseFloat(itemNilai[5]) || itemNilai[5] : "";
+            const n2 = itemNilai && itemNilai[6] !== "" ? parseFloat(itemNilai[6]) || itemNilai[6] : "";
+            const n3 = itemNilai && itemNilai[7] !== "" ? parseFloat(itemNilai[7]) || itemNilai[7] : "";
+            const n4 = itemNilai && itemNilai[8] !== "" ? parseFloat(itemNilai[8]) || itemNilai[8] : "";
+            const nRata = itemNilai && itemNilai[9] !== "" ? parseFloat(itemNilai[9]) || itemNilai[9] : "";
 
-            rowStr += `,"${n1}","${n2}","${n3}","${n4}","${nRata}"`;
+            row.push(n1, n2, n3, n4, nRata);
 
             if (nRata !== "" && !isNaN(parseFloat(nRata))) {
                 totalRataMapelSiswa += parseFloat(nRata);
@@ -1380,24 +1394,33 @@
             }
         });
 
-        // Hitung Rata-Rata Gabungan Semua Mapel untuk Siswa
-        const rataKeseluruhan = jumlahMapelTerisi > 0 ? (totalRataMapelSiswa / jumlahMapelTerisi).toFixed(1) : "";
-        rowStr += `,"${rataKeseluruhan}"\n`;
+        const rataKeseluruhan = jumlahMapelTerisi > 0 ? parseFloat((totalRataMapelSiswa / jumlahMapelTerisi).toFixed(1)) : "";
+        row.push(rataKeseluruhan);
 
-        csvContent += rowStr;
+        sheetData.push(row);
     });
 
-    // 3. GENERATE DOWNLOAD
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // 3. BUAT WORKSHEET & WORKBOOK SHEETJS
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-    showToast(`Leger Nilai Kelas ${kelas} berhasil diekspor!`, "success");
+    // 4. ATUR LEBAR KOLOM OTOMATIS (AUTOFIT BASED ON CONTENT)
+    const colWidths = headers.map((h, colIdx) => {
+        let maxLen = h.length;
+        sheetData.forEach(row => {
+            const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
+            if (val.length > maxLen) maxLen = val.length;
+        });
+        return { wch: Math.max(maxLen + 3, 10) }; // Tambah margin padding
+    });
+    ws['!cols'] = colWidths;
+
+    // 5. BUAT FILE EXCEL (.XLSX) DAN UNDUH
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Leger ${kelas}`);
+
+    XLSX.writeFile(wb, `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.xlsx`);
+
+    showToast(`Leger Nilai Excel (.xlsx) Kelas ${kelas} berhasil diunduh!`, "success");
 }
     </script>
 </body>
