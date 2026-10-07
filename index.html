@@ -214,7 +214,7 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mata Pelajaran</label>
-                        <select id="selectMapelGuru" onchange="onMapelGuruChanged()" class="...">w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
+                        <select id="selectMapelGuru" onchange="onMapelGuruChanged()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
                             <option value="">-- Pilih Mapel --</option>
                         </select>
                     </div>
@@ -252,33 +252,33 @@
                     </div>
                 </div>
 
-                <!-- TABEL INPUT NILAI DENGAN BORDER TEBAL -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <!-- TABEL INPUT NILAI DENGAN BORDER SANGAT TEGAS DAN FONT LEBIH JELAS -->
+                <div class="bg-white rounded-2xl shadow-sm border-2 border-slate-300 overflow-hidden">
+                    <div class="p-4 bg-slate-100 border-b-2 border-slate-300 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-chart-line text-indigo-600"></i> Data Nilai Siswa
                         </h3>
                         <span id="labelJumlahSiswa" class="text-xs bg-indigo-100 text-indigo-800 font-extrabold px-3 py-1 rounded-full">0 Siswa</span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
+                        <table class="w-full text-left border-collapse text-base text-slate-900 font-medium border-2 border-slate-300">
                             <thead>
-                                <tr class="bg-slate-100 text-slate-800 uppercase font-extrabold border-b-2 border-slate-300">
-                                    <th class="p-3 w-12 text-center border-r-2 border-slate-300">No</th>
-                                    <th class="p-3 border-r-2 border-slate-300">NISN</th>
-                                    <th class="p-3 border-r-2 border-slate-300">Nama Siswa</th>
-                                    <th class="p-3 text-center border-r-2 border-slate-300">Peringkat & Eligible</th>
-                                    <th class="p-3 text-center bg-amber-100/70 border-r-2 border-slate-300 text-amber-900">Histori Rapor</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300 col-n1" id="th_col1">Nilai 1</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300 col-n2" id="th_col2">Nilai 2</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300 col-n3" id="th_col3">Nilai 3</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300 col-n4" id="th_col4">Nilai 4</th>
-                                    <th class="p-3 text-center border-r-2 border-slate-300 font-black">Rata-Rata</th>
-                                    <th class="p-3 text-center">Tren</th>
+                                <tr class="bg-slate-200 text-slate-900 uppercase font-black border-b-2 border-slate-400">
+                                    <th class="p-3.5 w-12 text-center border-2 border-slate-300">NO</th>
+                                    <th class="p-3.5 text-center border-2 border-slate-300">NISN</th>
+                                    <th class="p-3.5 border-2 border-slate-300">NAMA SISWA</th>
+                                    <th class="p-3.5 text-center border-2 border-slate-300">PERINGKAT & ELIGIBLE</th>
+                                    <th class="p-3.5 text-center bg-amber-100/80 border-2 border-slate-300 text-amber-950 font-bold">HISTORI RAPOR</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300 col-n1" id="th_col1">Nilai 1</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300 col-n2" id="th_col2">Nilai 2</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300 col-n3" id="th_col3">Nilai 3</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300 col-n4" id="th_col4">Nilai 4</th>
+                                    <th class="p-3.5 text-center border-2 border-slate-300 font-black">RATA-RATA</th>
+                                    <th class="p-3.5 text-center border-2 border-slate-300">TREN</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableBodyNilaiGuru" class="divide-y-2 divide-slate-200">
-                                <tr><td colspan="11" class="p-8 text-center text-slate-400 font-medium">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
+                            <tbody id="tableBodyNilaiGuru" class="divide-y-2 divide-slate-300">
+                                <tr><td colspan="11" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -318,29 +318,29 @@
                     </div>
                 </div>
 
-                <!-- TABEL MASSAL CATATAN WALAS -->
-                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <!-- TABEL MASSAL CATATAN WALAS DENGAN BORDER TEGAS -->
+                <div class="bg-white rounded-2xl shadow-sm border-2 border-slate-300 overflow-hidden">
+                    <div class="p-4 bg-slate-100 border-b-2 border-slate-300 flex justify-between items-center">
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-users text-indigo-600"></i> Presensi & Catatan Siswa
                         </h3>
                         <span id="labelJumlahWalas" class="text-xs bg-indigo-100 text-indigo-800 font-extrabold px-3 py-1 rounded-full">0 Siswa</span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse text-sm">
+                        <table class="w-full text-left border-collapse text-base text-slate-900 font-medium border-2 border-slate-300">
                             <thead>
-                                <tr class="bg-slate-100 text-slate-800 uppercase font-extrabold border-b-2 border-slate-300">
-                                    <th class="p-3 w-12 text-center border-r-2 border-slate-300">No</th>
-                                    <th class="p-3 border-r-2 border-slate-300">NISN</th>
-                                    <th class="p-3 border-r-2 border-slate-300">Nama Siswa</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300">Sakit</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300">Izin</th>
-                                    <th class="p-3 text-center w-24 border-r-2 border-slate-300">Alpha</th>
-                                    <th class="p-3">Catatan Perkembangan Wali Kelas</th>
+                                <tr class="bg-slate-200 text-slate-900 uppercase font-black border-b-2 border-slate-400">
+                                    <th class="p-3.5 w-12 text-center border-2 border-slate-300">NO</th>
+                                    <th class="p-3.5 text-center border-2 border-slate-300">NISN</th>
+                                    <th class="p-3.5 border-2 border-slate-300">NAMA SISWA</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300">SAKIT</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300">IZIN</th>
+                                    <th class="p-3.5 text-center w-24 border-2 border-slate-300">ALPHA</th>
+                                    <th class="p-3.5 border-2 border-slate-300">CATATAN PERKEMBANGAN WALI KELAS</th>
                                 </tr>
                             </thead>
-                            <tbody id="tableBodyWalas" class="divide-y-2 divide-slate-200">
-                                <tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">Pilih Kelas Binaan untuk memuat daftar siswa.</td></tr>
+                            <tbody id="tableBodyWalas" class="divide-y-2 divide-slate-300">
+                                <tr><td colspan="7" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Pilih Kelas Binaan untuk memuat daftar siswa.</td></tr>
                             </tbody>
                         </table>
                     </div>
