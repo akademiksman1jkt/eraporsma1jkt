@@ -97,7 +97,7 @@
     "AGM": "Pendidikan Agama dan Budi Pekerti",
     "AGM_ISLAM": "Pendidikan Agama Islam dan Budi Pekerti",
     "AGM_KRISTEN": "Pendidikan Agama Kristen dan Budi Pekerti",
-    "AGM_KATOLIK": "Pendidikan Agama Katolik dan Budi Pekerti",
+    "AGM_KATOLIK": "Pendidikan Agama Katholik dan Budi Pekerti",
     "AGM_HINDU": "Pendidikan Agama Hindu dan Budi Pekerti",
     "AGM_BUDDHA": "Pendidikan Agama Buddha dan Budi Pekerti",
     "AGM_KHONGHUCU": "Pendidikan Agama Khonghucu dan Budi Pekerti",
@@ -1584,11 +1584,34 @@ function showToast(message, type = "info") {
         const nis = s[1] || "-";
         const nama = s[2];
 
-        // Ambil Nilai Histori Rapor Semester Lalu dari Master Leger (jika ada di kolom index tertentu)
-        // Misal s[4] atau s[5] adalah Histori Nilai Rapor
+        // Ambil Nilai Histori Rapor Semester Lalu dari Master Leger (jika ada)
         const nilaiHistoriSiswa = parseFloat(s[4] || s[5] || 0);
 
-        const nilaiSiswaList = masterData.inputNilai.filter(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
+        // 1. Ambil seluruh entri nilai mentah siswa untuk semester aktif
+        const rawNilaiSiswaList = masterData.inputNilai.filter(r => 
+            String(r[0]).trim() === String(nisn).trim() && 
+            String(r[4]).trim() === String(semAktif).trim()
+        );
+
+        // 2. FILTER KHUSUS MAPEL AGAMA:
+        // Menghilangkan entri mapel agama yang nilainya kosong ("-", "", "0")
+        const nilaiSiswaList = rawNilaiSiswaList.filter(nItem => {
+            const mapelCode = String(nItem[3] || "").trim().toUpperCase();
+
+            // Jika BUKAN mapel Agama, tetap tampilkan
+            if (!mapelCode.startsWith("AGM")) {
+                return true;
+            }
+
+            // Mengecek apakah ada setidaknya satu nilai yang terisi (bukan "-", "", atau "0")
+            const hasValidGrade = [nItem[5], nItem[6], nItem[7], nItem[8], nItem[9]].some(v => {
+                const str = String(v || "").trim();
+                return str !== "" && str !== "-" && str !== "0";
+            });
+
+            // Hanya sertakan mapel agama jika memiliki nilai terisi
+            return hasValidGrade;
+        });
         
         const extraData = masterData.extra.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
         const sakit = extraData ? extraData[5] : "0";
@@ -1729,7 +1752,7 @@ function showToast(message, type = "info") {
                         <p class="font-black text-slate-900">( .................................................... )</p>
                     </div>
                     <div>
-                        <p>Jakarta, 6 Oktober 2026</p>
+                        <p>Jakarta, 30 Oktober 2026</p>
                         <p>Wali Kelas,</p>
                         <div class="h-12"></div>
                         <p class="font-black text-indigo-950 underline">${namaWalasFinal}</p>
@@ -1739,7 +1762,7 @@ function showToast(message, type = "info") {
             </div>
         `;
     });
-}
+}}
 
         function switchTab(tabId) {
             document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
