@@ -1217,7 +1217,7 @@
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Konversi ke JSON Array of Arrays (raw: false agar nilai dibaca sebagai string sesuai format sel)
+            // Konversi ke JSON Array of Arrays
             const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
             if (rows.length <= 1) {
@@ -1231,7 +1231,6 @@
                 const cols = rows[i];
                 if (!cols || cols.length < 5) continue;
 
-                // [PERBAIKAN] Terapkan formatNISN() agar NISN dipad otomatis menjadi 10 digit
                 const rawNisn = String(cols[0] || "").trim();
                 const nisn = formatNISN(rawNisn);
                 
@@ -1256,6 +1255,18 @@
             }
 
             showConfirmModal("Import Nilai Excel", `Apakah Anda yakin ingin mengimpor ${dataImport.length} data nilai siswa?`, async () => {
+                // 1. SIMPAN PILIHAN KELAS, MAPEL, DAN SEMESTER SAAT INI AGAR TIDAK HILANG
+                const elKelas = document.getElementById("selectKelasGuru");
+                const elMapel = document.getElementById("selectMapelGuru");
+                const elSemester = document.getElementById("selectSemesterGuru");
+
+                const currentKelas = elKelas ? elKelas.value : "";
+                const currentMapel = elMapel ? elMapel.value : "";
+                const currentSemester = elSemester ? elSemester.value : "";
+
+                // 2. TAMPILKAN INDIKATOR LOADING/TOAST PROSES
+                showToast("Sedang mengimpor data nilai ke database...", "info");
+
                 const formData = new URLSearchParams();
                 formData.append("action", "importNilaiBatch");
                 formData.append("dataImport", JSON.stringify(dataImport));
@@ -1267,15 +1278,32 @@
                         body: formData.toString()
                     });
                     const json = await res.json();
-                    showToast(json.message, "success");
-                    await loadInitialData();
-                    loadDaftarSiswaGuru();
+
+                    if (json.status === "success") {
+                        showToast(json.message || "Berhasil mengimpor data nilai!", "success");
+                        
+                        // 3. MUAT ULANG DATA MASTER
+                        await loadInitialData();
+
+                        // 4. KEMBALIKAN PILIHAN DROPDOWN KELAS & MAPEL SEPERTI SEMULA
+                        if (elKelas && currentKelas) elKelas.value = currentKelas;
+                        if (elMapel && currentMapel) elMapel.value = currentMapel;
+                        if (elSemester && currentSemester) elSemester.value = currentSemester;
+
+                        // 5. RENDER ULANG TABEL DENGAN DATA TERBARU
+                        loadDaftarSiswaGuru();
+                    } else {
+                        showToast(json.message || "Gagal mengimpor data nilai!", "error");
+                    }
+
                 } catch (err) {
+                    console.error(err);
                     showToast("Gagal mengimpor data nilai!", "error");
                 }
             });
 
         } catch (err) {
+            console.error(err);
             showToast("Gagal membaca file Excel/CSV! Pastikan format file sesuai.", "error");
         }
     };
