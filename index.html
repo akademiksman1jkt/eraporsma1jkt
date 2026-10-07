@@ -1495,12 +1495,17 @@ function showToast(message, type = "info") {
 
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
-    // === TAMBAHAN PENTING: CARI DATA WALI KELAS BERDASARKAN KELAS TARGET ===
+    // Label Header Kolom dari Config
+    const lbl1 = masterData.config.LABEL_COL1 || "Nilai 1";
+    const lbl2 = masterData.config.LABEL_COL2 || "Nilai 2";
+    const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
+    const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
+
+    // Cari Data Wali Kelas
     const walasRow = (masterData.walasPlotting || []).slice(1).find(r => 
         String(r[0] || "").trim().toUpperCase() === String(kelas || "").trim().toUpperCase()
     );
 
-    // Kolom B (r[1]) = NAMA_WALI_KELAS | Kolom C (r[2]) = NIP_WALI_KELAS
     const namaWalasDb = walasRow && walasRow[1] ? String(walasRow[1]).trim() : "";
     const nipWalasDb  = walasRow && walasRow[2] ? String(walasRow[2]).trim() : "-";
 
@@ -1518,7 +1523,6 @@ function showToast(message, type = "info") {
         const alpha = extraData ? extraData[7] : "0";
         const catatan = extraData ? extraData[8] : "-";
         
-        // Penentuan Nama & NIP Walas (Prioritas dari DB_Wali_Kelas, fallback ke extra/currentUser)
         const namaWalasFinal = namaWalasDb || (extraData ? extraData[3] : (currentUser ? currentUser.namaGuru : "Wali Kelas"));
         const nipWalasFinal  = (nipWalasDb && nipWalasDb !== "" && nipWalasDb !== "-") ? nipWalasDb : "-";
 
@@ -1527,18 +1531,29 @@ function showToast(message, type = "info") {
             nilaiSiswaList.forEach((nItem, i) => {
                 const mapelCode = nItem[3];
                 const mapelName = MASTER_MAPEL_NAME[mapelCode] || mapelCode;
+                
+                const val1 = nItem[5] || "-";
+                const val2 = nItem[6] || "-";
+                const val3 = nItem[7] || "-";
+                const val4 = nItem[8] || "-";
                 const nilaiRata = nItem[9] || "-";
+                const tren = nItem[10] || nItem[11] || "-"; // Mengambil kolom Tren / Predikat
 
                 rowsNilaiHtml += `
-                    <tr class="border-b border-slate-300">
-                        <td class="p-1.5 text-center font-bold border-r-2 border-slate-300">${i + 1}</td>
-                        <td class="p-1.5 font-bold text-slate-900 border-r-2 border-slate-300">${mapelName}</td>
-                        <td class="p-1.5 text-center font-black text-indigo-950 text-sm">${nilaiRata}</td>
+                    <tr class="border-b border-slate-300 text-center">
+                        <td class="p-1.5 font-bold border-r-2 border-slate-300">${i + 1}</td>
+                        <td class="p-1.5 font-bold text-slate-900 text-left border-r-2 border-slate-300">${mapelName}</td>
+                        <td class="p-1.5 border-r border-slate-200">${val1}</td>
+                        <td class="p-1.5 border-r border-slate-200">${val2}</td>
+                        <td class="p-1.5 border-r border-slate-200">${val3}</td>
+                        <td class="p-1.5 border-r-2 border-slate-300">${val4}</td>
+                        <td class="p-1.5 font-black text-indigo-950 text-sm border-r-2 border-slate-300 bg-indigo-50/50">${nilaiRata}</td>
+                        <td class="p-1.5 font-bold text-slate-700">${tren}</td>
                     </tr>
                 `;
             });
         } else {
-            rowsNilaiHtml = `<tr><td colspan="3" class="p-4 text-center italic text-slate-400 font-medium">Belum ada nilai mata pelajaran yang dimasukkan.</td></tr>`;
+            rowsNilaiHtml = `<tr><td colspan="8" class="p-4 text-center italic text-slate-400 font-medium">Belum ada nilai mata pelajaran yang dimasukkan.</td></tr>`;
         }
 
         containerPrint.innerHTML += `
@@ -1570,14 +1585,19 @@ function showToast(message, type = "info") {
                     <div>Semester Aktif : <span class="font-extrabold text-indigo-950">Semester ${semAktif}</span></div>
                 </div>
 
-                <!-- TABEL NILAI -->
+                <!-- TABEL NILAI LENGKAP -->
                 <div class="overflow-hidden rounded-xl border-2 border-indigo-900 shadow-sm">
                     <table class="w-full text-left border-collapse text-xs">
                         <thead>
-                            <tr class="bg-indigo-950 text-white font-black uppercase tracking-wider text-[10px]">
-                                <th class="p-2 w-10 text-center border-r-2 border-indigo-800">No</th>
-                                <th class="p-2 border-r-2 border-indigo-800">Mata Pelajaran</th>
-                                <th class="p-2 w-24 text-center">Nilai PTS</th>
+                            <tr class="bg-indigo-950 text-white font-black uppercase tracking-wider text-[10px] text-center">
+                                <th class="p-2 w-8 border-r-2 border-indigo-800">No</th>
+                                <th class="p-2 border-r-2 border-indigo-800 text-left">Mata Pelajaran</th>
+                                <th class="p-2 w-12 border-r border-indigo-800">${lbl1}</th>
+                                <th class="p-2 w-12 border-r border-indigo-800">${lbl2}</th>
+                                <th class="p-2 w-12 border-r border-indigo-800">${lbl3}</th>
+                                <th class="p-2 w-12 border-r-2 border-indigo-800">${lbl4}</th>
+                                <th class="p-2 w-16 border-r-2 border-indigo-800 bg-indigo-900">Rata-Rata</th>
+                                <th class="p-2 w-20">Capai / Tren</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y-2 divide-slate-300">
@@ -1592,7 +1612,7 @@ function showToast(message, type = "info") {
                         <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 uppercase tracking-wider text-[9px]">Ketidakhadiran</h4>
                         <div class="flex justify-between font-bold"><span>Sakit :</span> <span class="font-black">${sakit} hari</span></div>
                         <div class="flex justify-between font-bold"><span>Izin :</span> <span class="font-black">${izin} hari</span></div>
-                        <div class="flex justify-between font-bold"><span>Alpa :</span> <span class="font-black">${alpha} hari</span></div>
+                        <div class="flex justify-between font-bold"><span>Alpha :</span> <span class="font-black">${alpha} hari</span></div>
                     </div>
                     <div class="col-span-2 bg-slate-50 border-2 border-slate-300 p-2.5 rounded-xl">
                         <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 mb-1 uppercase tracking-wider text-[9px]">Catatan Perkembangan Wali Kelas</h4>
@@ -1600,11 +1620,11 @@ function showToast(message, type = "info") {
                     </div>
                 </div>
 
-                <!-- TANDA TANGAN DENGAN NIP DINAMIS -->
+                <!-- TANDA TANGAN -->
                 <div class="pt-2 grid grid-cols-2 text-xs text-center font-bold">
                     <div>
                         <p>Mengetahui,</p>
-                        <p>Orang Tua / Wali Murid</p>
+                        <p>Orang Tua / Wali Siswa</p>
                         <div class="h-12"></div>
                         <p class="font-black text-slate-900">( .................................................... )</p>
                     </div>
