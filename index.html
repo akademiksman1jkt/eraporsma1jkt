@@ -1575,6 +1575,10 @@ function showToast(message, type = "info") {
         const nis = s[1] || "-";
         const nama = s[2];
 
+        // Ambil Nilai Histori Rapor Semester Lalu dari Master Leger (jika ada di kolom index tertentu)
+        // Misal s[4] atau s[5] adalah Histori Nilai Rapor
+        const nilaiHistoriSiswa = parseFloat(s[4] || s[5] || 0);
+
         const nilaiSiswaList = masterData.inputNilai.filter(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
         
         const extraData = masterData.extra.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
@@ -1596,29 +1600,46 @@ function showToast(message, type = "info") {
                 const val2 = nItem[6] || "-";
                 const val3 = nItem[7] || "-";
                 const val4 = nItem[8] || "-";
-                const nilaiRata = nItem[9] || "-";
+                const nilaiRata = parseFloat(nItem[9]) || 0;
 
-                // LOGIKA DETEKSI KOLOM TREN (Melompati Tanggal / Timestamp)
+                // KALKULASI TREN DENGAN NILAI HISTORI SEMESTER LALU
                 let trenVal = "-";
-                const raw10 = String(nItem[10] || "").trim();
-                const raw11 = String(nItem[11] || "").trim();
+                let trenClass = "text-slate-800";
 
-                if (raw10 && !raw10.includes("/") && !raw10.includes(":")) {
-                    trenVal = raw10;
-                } else if (raw11 && !raw11.includes("/") && !raw11.includes(":")) {
-                    trenVal = raw11;
+                if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
+                    const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
+                    if (diff > 0) {
+                        trenVal = `↗ +${diff}`;
+                        trenClass = "text-emerald-600 font-extrabold";
+                    } else if (diff < 0) {
+                        trenVal = `↘ ${diff}`;
+                        trenClass = "text-rose-600 font-extrabold";
+                    } else {
+                        trenVal = `→ 0.0`;
+                        trenClass = "text-slate-600 font-bold";
+                    }
+                } else {
+                    // Fallback: Jika histori tidak ada di leger, cek kolom manual di inputNilai (melompati timestamp)
+                    for (let idx = 10; idx < nItem.length; idx++) {
+                        const valStr = String(nItem[idx] || "").trim();
+                        if (!valStr || valStr.includes("/") || valStr.includes(":")) continue;
+                        if (valStr !== "-" && valStr !== "") {
+                            trenVal = valStr;
+                            break;
+                        }
+                    }
                 }
 
                 rowsNilaiHtml += `
                     <tr class="border-b border-slate-300 text-center font-bold text-slate-900">
                         <td class="p-1.5 border-r-2 border-slate-300">${i + 1}</td>
                         <td class="p-1.5 text-left border-r-2 border-slate-300 font-extrabold text-slate-900">${mapelName}</td>
-                        <td class="p-1.5 border-r border-slate-200">${val1}</td>
-                        <td class="p-1.5 border-r border-slate-200">${val2}</td>
-                        <td class="p-1.5 border-r border-slate-200">${val3}</td>
-                        <td class="p-1.5 border-r-2 border-slate-300">${val4}</td>
-                        <td class="p-1.5 font-black text-indigo-950 text-sm border-r-2 border-slate-300 bg-indigo-50/50">${nilaiRata}</td>
-                        <td class="p-1.5 font-extrabold text-slate-800">${trenVal}</td>
+                        <td class="p-1.5 border-r border-slate-200 font-extrabold text-slate-900">${val1}</td>
+                        <td class="p-1.5 border-r border-slate-200 font-extrabold text-slate-900">${val2}</td>
+                        <td class="p-1.5 border-r border-slate-200 font-extrabold text-slate-900">${val3}</td>
+                        <td class="p-1.5 border-r-2 border-slate-300 font-extrabold text-slate-900">${val4}</td>
+                        <td class="p-1.5 font-black text-indigo-950 text-sm border-r-2 border-slate-300 bg-indigo-50/50">${nItem[9] || "-"}</td>
+                        <td class="p-1.5 ${trenClass}">${trenVal}</td>
                     </tr>
                 `;
             });
