@@ -829,44 +829,74 @@ function showToast(message, type = "info") {
 }
 
         function loadTableSiswaWalas() {
-            const kelas = document.getElementById("selectKelasWalas").value;
-            const tbody = document.getElementById("tableBodyWalas");
+    const elKelas = document.getElementById("selectKelasWalas");
+    if (!elKelas) return;
+    
+    const kelasSelected = elKelas.value;
+    const tbody = document.getElementById("tableBodyWalas"); // ID tbody tabel walas Anda
+    if (!tbody || !kelasSelected) return;
 
-            if (!kelas) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">Pilih Kelas Binaan untuk memuat daftar siswa.</td></tr>';
-                document.getElementById("labelJumlahWalas").innerText = "0 Siswa";
-                return;
+    // Filter daftar siswa berdasarkan kelas dari masterData.leger
+    const siswaFiltered = (masterData.leger || []).slice(1).filter(r => String(r[3]).trim() === kelasSelected);
+
+    tbody.innerHTML = "";
+
+    siswaFiltered.forEach((s, idx) => {
+        const rawNisn = s[0];
+        const nisn = formatNISN(rawNisn);
+        const nama = s[2];
+
+        // Cari data presensi & catatan siswa di masterData.extra (DB_Rapor_PTS)
+        const existingExtra = (masterData.extra || []).find(r => {
+            const rowNisn = Array.isArray(r) ? formatNISN(r[0]) : formatNISN(r.nisn);
+            return rowNisn === nisn;
+        });
+
+        // Ambil data sesuai posisi kolom Spreadsheet DB_Rapor_PTS
+        let sakit = "0";
+        let izin = "0";
+        let alpha = "0";
+        let catatan = "";
+
+        if (existingExtra) {
+            if (Array.isArray(existingExtra)) {
+                // Sesuai Spreadsheet DB_Rapor_PTS:
+                // [0] NISN | [1] NAMA | [2] KELAS | [3] WALI_KELAS | [4] SEMESTER 
+                // [5] SAKIT | [6] IZIN | [7] ALPA | [8] CATATAN_WALI_KELAS
+                sakit = existingExtra[5] !== undefined && existingExtra[5] !== "" ? existingExtra[5] : "0";
+                izin = existingExtra[6] !== undefined && existingExtra[6] !== "" ? existingExtra[6] : "0";
+                alpha = existingExtra[7] !== undefined && existingExtra[7] !== "" ? existingExtra[7] : "0";
+                catatan = existingExtra[8] !== undefined ? existingExtra[8] : "";
+            } else {
+                // Jika dari format Object JavaScript
+                sakit = existingExtra.sakit !== undefined ? existingExtra.sakit : "0";
+                izin = existingExtra.izin !== undefined ? existingExtra.izin : "0";
+                alpha = existingExtra.alpha || existingExtra.alpa || "0";
+                catatan = existingExtra.catatanWalas || existingExtra.catatan || "";
             }
-
-            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-            document.getElementById("labelJumlahWalas").innerText = `${siswaFiltered.length} Siswa`;
-
-            const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-
-            tbody.innerHTML = "";
-            siswaFiltered.forEach((s, idx) => {
-                const nisn = s[0];
-                const nama = s[2];
-
-                const existing = masterData.extra.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
-                const sakit = existing ? existing[5] : 0;
-                const izin = existing ? existing[6] : 0;
-                const alpha = existing ? existing[7] : 0;
-                const catatan = existing ? existing[8] : "";
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-indigo-50/50 transition row-walas" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
-                        <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
-                        <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
-                        <td class="p-3 font-extrabold text-slate-900 border-r-2 border-slate-200">${nama}</td>
-                        <td class="p-3 text-center border-r-2 border-slate-200"><input type="number" id="sakit_${nisn}" value="${sakit}" min="0" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center border-r-2 border-slate-200"><input type="number" id="izin_${nisn}" value="${izin}" min="0" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3 text-center border-r-2 border-slate-200"><input type="number" id="alpha_${nisn}" value="${alpha}" min="0" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                        <td class="p-3"><input type="text" id="catatan_${nisn}" value="${catatan}" placeholder="Tuliskan catatan motivasi/perkembangan..." class="w-full p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-xs font-semibold outline-none"></td>
-                    </tr>
-                `;
-            });
         }
+
+        tbody.innerHTML += `
+            <tr class="hover:bg-indigo-50/50 transition">
+                <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
+                <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
+                <td class="p-3 font-extrabold text-slate-900 border-r-2 border-slate-200">${nama}</td>
+                <td class="p-3 text-center border-r-2 border-slate-200">
+                    <input type="number" min="0" id="sakit_${nisn}" value="${sakit}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                </td>
+                <td class="p-3 text-center border-r-2 border-slate-200">
+                    <input type="number" min="0" id="izin_${nisn}" value="${izin}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                </td>
+                <td class="p-3 text-center border-r-2 border-slate-200">
+                    <input type="number" min="0" id="alpha_${nisn}" value="${alpha}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                </td>
+                <td class="p-3 border-r-2 border-slate-200">
+                    <input type="text" id="catatan_${nisn}" value="${catatan}" placeholder="Tuliskan catatan motivasi/perkembangan..." class="w-full p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg font-medium text-xs outline-none">
+                </td>
+            </tr>
+        `;
+    });
+}
 
         async function simpanSemuaCatatanWalasBatch() {
             const kelas = document.getElementById("selectKelasWalas").value;
@@ -1013,7 +1043,7 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
-                // 1. Simpan State Kelas Walas yang sedang dipilih
+                // 1. Simpan State Kelas Walas yang sedang aktif
                 const elKelasWalas = document.getElementById("selectKelasWalas");
                 const currentKelasWalas = elKelasWalas ? elKelasWalas.value : "";
 
@@ -1048,16 +1078,29 @@ function showToast(message, type = "info") {
                         // Sync Data Master dari Google Sheet
                         await loadInitialData();
 
-                        // Kembalikan Pilihan Dropdown Kelas Walas
+                        // ============================================================
+                        // [PERBAIKAN UTAMA] Paksa Halaman Tetap Bertahan di Tab Walas
+                        // ============================================================
+                        
+                        // A. Buka/Aktifkan Tampilan Tab Walas kembali
+                        if (typeof switchTab === "function") {
+                            switchTab('walas'); // Sesuaikan nama parameter tab walas Anda (misal: 'walas' atau 'catatan')
+                        } else {
+                            // Jika pakai pengubah style/class biasa:
+                            const viewGuru = document.getElementById("viewGuru");
+                            const viewWalas = document.getElementById("viewWalas");
+                            if (viewGuru) viewGuru.classList.add("hidden");
+                            if (viewWalas) viewWalas.classList.remove("hidden");
+                        }
+
+                        // B. Pulihkan nilai dropdown Kelas Walas
                         if (elKelasWalas && currentKelasWalas) {
                             elKelasWalas.value = currentKelasWalas;
                         }
 
-                        // [PERBAIKAN UTAMA] Panggil nama fungsi render tabel walas yang benar: loadTableSiswaWalas()
+                        // C. Render ulang tabel walas dengan data terbaru
                         if (typeof loadTableSiswaWalas === "function") {
                             loadTableSiswaWalas();
-                        } else if (typeof loadDaftarSiswaWalas === "function") {
-                            loadDaftarSiswaWalas();
                         }
 
                         notificationMessage = json.message || "Berhasil mengimpor data walas!";
@@ -1072,12 +1115,12 @@ function showToast(message, type = "info") {
                     notificationMessage = "Gagal mengimpor data presensi walas!";
                     notificationType = "error";
                 } finally {
-                    // 3. Sembunyikan Modal Loading
+                    // Sembunyikan Loading Modal
                     if (modalLoading) {
                         modalLoading.classList.add("hidden");
                     }
 
-                    // 4. Tampilkan 1 Notifikasi Toast di Tengah
+                    // Tampilkan Notifikasi Modal/Toast di Tengah
                     if (notificationMessage) {
                         showToast(notificationMessage, notificationType);
                     }
