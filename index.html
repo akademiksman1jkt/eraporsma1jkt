@@ -214,7 +214,7 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mata Pelajaran</label>
-                        <select id="selectMapelGuru" onchange="onMapelGuruChanged()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
+                        <select id="selectMapelGuru" onchange="onMapelGuruChanged()" class="...">w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
                             <option value="">-- Pilih Mapel --</option>
                         </select>
                     </div>
@@ -1726,29 +1726,52 @@ function showToast(message, type = "info") {
       });
   }
         function onMapelGuruChanged() {
-    const mapelSelected = document.getElementById("selectMapelGuru").value;
-    const selKelasGuru = document.getElementById("selectKelasGuru");
-    if (!selKelasGuru) return;
+    const selMapel = document.getElementById("selectMapelGuru");
+    const selKelas = document.getElementById("selectKelasGuru");
+    if (!selMapel || !selKelas) return;
 
-    // Jika admin, biarkan daftar kelas lengkap
-    if (currentUser && String(currentUser.role).toLowerCase() === "admin") {
-        loadDaftarSiswaGuru();
-        return;
-    }
-
-    selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+    const mapelSelected = selMapel.value; // Kode mapel yang dipilih (misal: "MTK")
+    selKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
 
     if (!mapelSelected) {
         loadDaftarSiswaGuru();
         return;
     }
 
-    // Ambil kelas plotting dari currentUser
-    const guruKelases = String(currentUser.kelasPlotting || "").split(",").map(k => k.trim());
-    guruKelases.forEach(k => {
-        if (k) selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
+    // A. Jika Role adalah ADMIN, tampilkan seluruh kelas dari leger
+    if (currentUser && String(currentUser.role).toLowerCase() === "admin") {
+        const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
+        allKelasList.forEach(k => {
+            selKelas.innerHTML += `<option value="${k}">${k}</option>`;
+        });
+        loadDaftarSiswaGuru();
+        return;
+    }
+
+    // B. Untuk GURU: Cari baris spesifik di DB_Guru yang cocok dengan USERNAME & MAPEL yang sedang dipilih
+    const curUser = String(currentUser.username || "").trim().toLowerCase();
+    
+    const matchedRows = (masterData.guru || []).filter(r => {
+        const rowUsername = String(r[0] || "").trim().toLowerCase(); // Kolom A: USERNAME
+        const rowMapel = String(r[3] || "").trim().toUpperCase();    // Kolom D: MAPEL_PLOTTING
+        return rowUsername === curUser && rowMapel === mapelSelected.toUpperCase();
     });
 
+    // Ambil hanya kelas-kelas yang terdaftar pada baris mapel tersebut
+    const kelasSet = new Set();
+    matchedRows.forEach(r => {
+        const rawKelas = String(r[4] || "").trim(); // Kolom E: KELAS_PLOTTING
+        if (rawKelas) {
+            rawKelas.split(",").forEach(k => kelasSet.add(k.trim()));
+        }
+    });
+
+    // Masukkan daftar kelas yang sudah tersaring khusus mapel tersebut ke dropdown
+    kelasSet.forEach(k => {
+        if (k) selKelas.innerHTML += `<option value="${k}">${k}</option>`;
+    });
+
+    // Render ulang tabel siswa
     loadDaftarSiswaGuru();
 }
     </script>
