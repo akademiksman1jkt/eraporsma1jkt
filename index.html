@@ -753,7 +753,6 @@ function showToast(message, type = "info") {
     tbody.innerHTML = "";
     siswaFiltered.forEach((s, idx) => {
         const rawNisn = s[0];
-        // Memastikan NISN bersih dari petik dan tepat 10 digit untuk tampilan & pencarian
         const nisn = String(rawNisn || "").replace(/^'/, "").trim().padStart(10, "0");
         const nama = s[2];
         const rank = parseInt(s[5]);
@@ -780,9 +779,6 @@ function showToast(message, type = "info") {
             }
         }
 
-        // ============================================================
-        // [PERBAIKAN UTAMA] Pencarian Nilai Terdaftar Secara Presisi
-        // ============================================================
         const targetMapel = String(mapel).trim().toUpperCase();
         const targetSemester = String(semester).trim();
 
@@ -822,6 +818,13 @@ function showToast(message, type = "info") {
                 <td class="p-3 text-center font-extrabold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
             </tr>
         `;
+
+        // ============================================================
+        // [PERBAIKAN] Jalankan kalkulasi tren otomatis saat data dimuat
+        // ============================================================
+        setTimeout(() => {
+            hitungRataAuto(nisn, nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0);
+        }, 0);
     });
 }
 
@@ -972,12 +975,10 @@ function showToast(message, type = "info") {
     reader.onload = async function(e) {
         try {
             const data = new Uint8Array(e.target.result);
-            // [PERBAIKAN 1] Tambahkan raw: false agar membaca teks terformat
             const workbook = XLSX.read(data, { type: 'array', raw: false });
             
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
-            // [PERBAIKAN 2] Tambahkan raw: false pada konversi JSON
             const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
 
             if (rows.length <= 1) {
@@ -990,7 +991,6 @@ function showToast(message, type = "info") {
                 const cols = rows[i];
                 if (!cols || cols.length < 3) continue;
 
-                // [PERBAIKAN 3] Gunakan formatNISN() untuk memastikan NISN selalu 10 digit
                 const rawNisn = String(cols[0] || "").trim();
                 const nisn = formatNISN(rawNisn);
 
@@ -1013,9 +1013,24 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
+                // 1. Simpan State Kelas Walas yang sedang dipilih
+                const elKelasWalas = document.getElementById("selectKelasWalas");
+                const currentKelasWalas = elKelasWalas ? elKelasWalas.value : "";
+
+                // 2. Tampilkan Modal Loading di Tengah Layar
+                const modalLoading = document.getElementById("modalLoadingImport");
+                if (modalLoading) {
+                    document.getElementById("loadingTitle").innerText = "Mengimpor Data Walas";
+                    document.getElementById("loadingDesc").innerText = `Sedang menyimpan ${dataWalasImport.length} data presensi...`;
+                    modalLoading.classList.remove("hidden");
+                }
+
                 const formData = new URLSearchParams();
                 formData.append("action", "importWalasBatch");
                 formData.append("dataWalasImport", JSON.stringify(dataWalasImport));
+
+                let notificationMessage = "";
+                let notificationType = "success";
 
                 try {
                     const res = await fetch(API_URL, {
@@ -1024,15 +1039,53 @@ function showToast(message, type = "info") {
                         body: formData.toString()
                     });
                     const json = await res.json();
-                    showToast(json.message, "success");
-                    await loadInitialData();
-                    loadDaftarSiswaWalas();
+
+                    if (json.status === "success") {
+                        if (document.getElementById("loadingDesc")) {
+                            document.getElementById("loadingDesc").innerText = "Menyelaraskan data tabel...";
+                        }
+
+                        // Sync Data Master dari Google Sheet
+                        await loadInitialData();
+
+                        // Kembalikan Pilihan Dropdown Kelas Walas
+                        if (elKelasWalas && currentKelasWalas) {
+                            elKelasWalas.value = currentKelasWalas;
+                        }
+
+                        // [PERBAIKAN UTAMA] Panggil nama fungsi render tabel walas yang benar: loadTableSiswaWalas()
+                        if (typeof loadTableSiswaWalas === "function") {
+                            loadTableSiswaWalas();
+                        } else if (typeof loadDaftarSiswaWalas === "function") {
+                            loadDaftarSiswaWalas();
+                        }
+
+                        notificationMessage = json.message || "Berhasil mengimpor data walas!";
+                        notificationType = "success";
+                    } else {
+                        notificationMessage = json.message || "Gagal mengimpor data presensi walas!";
+                        notificationType = "error";
+                    }
+
                 } catch (err) {
-                    showToast("Gagal mengimpor data presensi walas!", "error");
+                    console.error(err);
+                    notificationMessage = "Gagal mengimpor data presensi walas!";
+                    notificationType = "error";
+                } finally {
+                    // 3. Sembunyikan Modal Loading
+                    if (modalLoading) {
+                        modalLoading.classList.add("hidden");
+                    }
+
+                    // 4. Tampilkan 1 Notifikasi Toast di Tengah
+                    if (notificationMessage) {
+                        showToast(notificationMessage, notificationType);
+                    }
                 }
             });
 
         } catch (err) {
+            console.error(err);
             showToast("Gagal membaca file Excel/CSV walas!", "error");
         }
     };
