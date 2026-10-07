@@ -181,7 +181,7 @@
                 <div class="flex items-center gap-3">
                     <img src="https://iili.io/nnSW4xR.png" alt="Logo" class="w-9 h-9 object-contain">
                     <div>
-                        <h2 class="font-bold text-base leading-tight" id="navSchoolName">e-Rapor PTS - SMAN 1 Jakarta</h2>
+                        <h2 class="font-bold text-base leading-tight" id="navSchoolName">e-Rapor - SMAN 1 Jakarta</h2>
                         <span class="text-xs text-indigo-200 font-medium" id="navUserDetail">Memuat...</span>
                     </div>
                 </div>
@@ -1597,18 +1597,28 @@ function showToast(message, type = "info") {
                 const val3 = nItem[7] || "-";
                 const val4 = nItem[8] || "-";
                 const nilaiRata = nItem[9] || "-";
-                const tren = nItem[10] || nItem[11] || "-"; // Mengambil kolom Tren / Predikat
+
+                // LOGIKA DETEKSI KOLOM TREN (Melompati Tanggal / Timestamp)
+                let trenVal = "-";
+                const raw10 = String(nItem[10] || "").trim();
+                const raw11 = String(nItem[11] || "").trim();
+
+                if (raw10 && !raw10.includes("/") && !raw10.includes(":")) {
+                    trenVal = raw10;
+                } else if (raw11 && !raw11.includes("/") && !raw11.includes(":")) {
+                    trenVal = raw11;
+                }
 
                 rowsNilaiHtml += `
-                    <tr class="border-b border-slate-300 text-center">
-                        <td class="p-1.5 font-bold border-r-2 border-slate-300">${i + 1}</td>
-                        <td class="p-1.5 font-bold text-slate-900 text-left border-r-2 border-slate-300">${mapelName}</td>
+                    <tr class="border-b border-slate-300 text-center font-bold text-slate-900">
+                        <td class="p-1.5 border-r-2 border-slate-300">${i + 1}</td>
+                        <td class="p-1.5 text-left border-r-2 border-slate-300 font-extrabold text-slate-900">${mapelName}</td>
                         <td class="p-1.5 border-r border-slate-200">${val1}</td>
                         <td class="p-1.5 border-r border-slate-200">${val2}</td>
                         <td class="p-1.5 border-r border-slate-200">${val3}</td>
                         <td class="p-1.5 border-r-2 border-slate-300">${val4}</td>
                         <td class="p-1.5 font-black text-indigo-950 text-sm border-r-2 border-slate-300 bg-indigo-50/50">${nilaiRata}</td>
-                        <td class="p-1.5 font-bold text-slate-700">${tren}</td>
+                        <td class="p-1.5 font-extrabold text-slate-800">${trenVal}</td>
                     </tr>
                 `;
             });
