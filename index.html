@@ -214,7 +214,7 @@
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mata Pelajaran</label>
-                        <select id="selectMapelGuru" onchange="loadDaftarSiswaGuru()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
+                        <select id="selectMapelGuru" onchange="onMapelGuruChanged()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 focus:border-indigo-600 outline-none font-bold">
                             <option value="">-- Pilih Mapel --</option>
                         </select>
                     </div>
@@ -608,11 +608,14 @@ function showToast(message, type = "info") {
     try {
         const res = await fetch(`${API_URL}?action=getDataLeger`);
         const json = await res.json();
+        
+        // Simpan data master dari server
         masterData.leger = json.data || [];
         masterData.inputNilai = json.inputNilai || [];
         masterData.extra = json.extra || [];
         masterData.walasPlotting = json.walasPlotting || [];
         masterData.config = json.config || {};
+        masterData.guru = json.guru || []; // Memuat data DB_Guru dari server
 
         const semAktif = masterData.config.SEMESTER_AKTIF || "1";
         document.getElementById("displaySemester").value = `Semester ${semAktif}`;
@@ -631,10 +634,10 @@ function showToast(message, type = "info") {
         const selKelasGuru = document.getElementById("selectKelasGuru");
         const selKelasWalas = document.getElementById("selectKelasWalas");
         const selKelasCetak = document.getElementById("selectKelasCetak");
-        const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger"); // REFF ELEMEN EKSPOR LEGER
+        const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger");
 
         selMapel.innerHTML = '<option value="">-- Pilih Mapel --</option>';
-        selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        selKelasGuru.innerHTML = '<option value="">-- Pilih Mapel Terlebih Dahulu --</option>';
         selKelasWalas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
         selKelasCetak.innerHTML = '<option value="">-- Pilih Kelas --</option>';
         
@@ -675,27 +678,50 @@ function showToast(message, type = "info") {
             btnTabAdmin.classList.add("hidden");
         }
 
-        switchTab('inputNilaiTab');
-
+        // PERCABANGAN PENGISIAN DROPDOWN UTAMA
         if (isAdmin) {
+            // Jika ADMIN: tampilkan semua mapel dan kelas
             Object.keys(MASTER_MAPEL_NAME).forEach(code => {
                 selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
             });
+            
+            selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
             allKelasList.forEach(k => {
                 selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
                 selKelasWalas.innerHTML += `<option value="${k}">${k}</option>`;
                 selKelasCetak.innerHTML += `<option value="${k}">${k}</option>`;
                 
-                // ISI KELAS UNTUK EKSPOR LEGER ADMIN
                 if (selKelasEksporLeger) {
                     selKelasEksporLeger.innerHTML += `<option value="${k}">${k}</option>`;
                 }
             });
         } else {
-            const guruMapels = String(currentUser.mapelPlotting || "").split(",").map(m => m.trim());
-            const guruKelases = String(currentUser.kelasPlotting || "").split(",").map(k => k.trim());
+            // Jika GURU (MULTI-ROW SUPPORT):
+            // Cari seluruh baris di DB_Guru yang memiliki USERNAME milik guru yang sedang login
+            const curUser = String(currentUser.username || "").trim().toLowerCase();
+            
+            const myGuruRows = (masterData.guru.length > 0 ? masterData.guru : []).filter(r => {
+                const un = String(r[0] || "").trim().toLowerCase(); // Kolom A: USERNAME
+                return un === curUser;
+            });
 
-            guruMapels.forEach(code => {
+            // Kumpulkan seluruh mapel unik dari baris-baris milik guru tersebut
+            const mapelSet = new Set();
+            if (myGuruRows.length > 0) {
+                myGuruRows.forEach(r => {
+                    const mapelStr = String(r[3] || "").trim(); // Kolom D: MAPEL_PLOTTING
+                    if (mapelStr) {
+                        mapelStr.split(",").forEach(m => mapelSet.add(m.trim()));
+                    }
+                });
+            } else {
+                // Fallback jika menggunakan data login currentUser biasa
+                const fallbackMapel = String(currentUser.mapelPlotting || "").split(",");
+                fallbackMapel.forEach(m => mapelSet.add(m.trim()));
+            }
+
+            // Masukkan mapel ke dropdown Mapel
+            mapelSet.forEach(code => {
                 if (code && MASTER_MAPEL_NAME[code]) {
                     selMapel.innerHTML += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
                 } else if (code) {
@@ -703,10 +729,7 @@ function showToast(message, type = "info") {
                 }
             });
 
-            guruKelases.forEach(k => {
-                if (k) selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
-            });
-
+            // Pengisian kelas wali kelas jika ada
             if (isWaliKelas) {
                 myWalasRows.forEach(row => {
                     const kelasBinaan = row[0];
@@ -719,6 +742,7 @@ function showToast(message, type = "info") {
         }
 
     } catch (err) {
+        console.error(err);
         showToast("Gagal memuat data dari server!", "error");
     }
 }
@@ -1043,25 +1067,15 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
-                // 1. SIMPAN PILIHAN KELAS YANG SEDANG DIPILIH
+                // 1. Simpan Pilihan Kelas Walas Sebelum Impor
                 const elKelasWalas = document.getElementById("selectKelasWalas");
                 const currentKelasWalas = elKelasWalas ? elKelasWalas.value : "";
 
-                // 2. TAMPILKAN MODAL LOADING
-                const modalLoading = document.getElementById("modalLoadingImport");
-                if (modalLoading) {
-                    const titleEl = document.getElementById("loadingTitle");
-                    const descEl = document.getElementById("loadingDesc");
-                    if (titleEl) titleEl.innerText = "Mengimpor Data Walas";
-                    if (descEl) descEl.innerText = `Sedang menyimpan ${dataWalasImport.length} data presensi...`;
-                    modalLoading.classList.remove("hidden");
-                }
+                showToast("Sedang mengimpor data presensi & catatan...", "info");
 
                 const formData = new URLSearchParams();
                 formData.append("action", "importWalasBatch");
                 formData.append("dataWalasImport", JSON.stringify(dataWalasImport));
-
-                let isSuccess = false;
 
                 try {
                     const res = await fetch(API_URL, {
@@ -1069,68 +1083,27 @@ function showToast(message, type = "info") {
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
                         body: formData.toString()
                     });
-                    isSuccess = true;
                 } catch (err) {
-                    // Walaupun CORS redirect error, data tetap tersimpan di Apps Script
-                    console.warn("Server POST warning:", err);
-                    isSuccess = true; 
+                    console.warn("CORS/Redirect warning dari Apps Script:", err);
                 } finally {
-                    // Sembunyikan Modal Loading
-                    if (modalLoading) {
-                        modalLoading.classList.add("hidden");
-                    }
-
-                    // 3. REFRESH DATA & KEMBALIKAN TAMPILAN TAB WALAS SECARA AMAN
+                    // 2. Refetch Data Terbaru & Render Ulang
                     try {
-                        if (typeof loadInitialData === "function") {
-                            await loadInitialData();
-                        }
+                        await loadInitialData();
 
-                        // A. Paksa Tampilkan Kontainer/Tab Absensi & Catatan Walas
-                        const walasViews = ["viewWalas", "viewCatatan", "viewAbsensi", "walasSection"];
-                        const allViews = ["viewGuru", "viewNilai", "viewCetak", "viewAdmin"];
+                        // 3. Pindah kembali ke Tab Absensi & Catatan Walas secara tepat
+                        switchTab('inputWalasTab');
 
-                        // Sembunyikan view lain
-                        allViews.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (el) el.classList.add("hidden");
-                        });
-
-                        // Tampilkan view walas
-                        let viewFound = false;
-                        walasViews.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (el) {
-                                el.classList.remove("hidden");
-                                viewFound = true;
-                            }
-                        });
-
-                        // Jika memakai fungsi pengalih tab global di aplikasi Anda
-                        if (typeof switchTab === "function") {
-                            try { switchTab('walas'); } catch (e) {}
-                        } else if (typeof showTab === "function") {
-                            try { showTab('walas'); } catch (e) {}
-                        }
-
-                        // B. Pulihkan Kembali Pilihan Dropdown Kelas Walas
+                        // 4. Pulihkan Kelas yang Dipilih & Muat Ulang Tabel Walas
                         const elKelasWalasUpdated = document.getElementById("selectKelasWalas");
                         if (elKelasWalasUpdated && currentKelasWalas) {
                             elKelasWalasUpdated.value = currentKelasWalas;
                         }
-
-                        // C. Render Ulang Tabel Walas
-                        if (typeof loadTableSiswaWalas === "function") {
-                            loadTableSiswaWalas();
-                        } else if (typeof loadDaftarSiswaWalas === "function") {
-                            loadDaftarSiswaWalas();
-                        }
+                        loadTableSiswaWalas();
 
                     } catch (renderErr) {
-                        console.error("Gagal memuat ulang UI:", renderErr);
+                        console.error("Gagal merender ulang:", renderErr);
                     }
 
-                    // 4. TAMPILKAN NOTIFIKASI
                     showToast("Berhasil mengimpor data walas!", "success");
                 }
             });
@@ -1752,6 +1725,32 @@ function showToast(message, type = "info") {
           return rowNisn === targetNisn && rowMapel === targetMapel && rowSem === targetSem;
       });
   }
+        function onMapelGuruChanged() {
+    const mapelSelected = document.getElementById("selectMapelGuru").value;
+    const selKelasGuru = document.getElementById("selectKelasGuru");
+    if (!selKelasGuru) return;
+
+    // Jika admin, biarkan daftar kelas lengkap
+    if (currentUser && String(currentUser.role).toLowerCase() === "admin") {
+        loadDaftarSiswaGuru();
+        return;
+    }
+
+    selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+    if (!mapelSelected) {
+        loadDaftarSiswaGuru();
+        return;
+    }
+
+    // Ambil kelas plotting dari currentUser
+    const guruKelases = String(currentUser.kelasPlotting || "").split(",").map(k => k.trim());
+    guruKelases.forEach(k => {
+        if (k) selKelasGuru.innerHTML += `<option value="${k}">${k}</option>`;
+    });
+
+    loadDaftarSiswaGuru();
+}
     </script>
     <!-- Modal Loading Import (Tengah Layar) -->
 <div id="modalLoadingImport" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex flex-col items-center justify-center transition-all duration-300">
