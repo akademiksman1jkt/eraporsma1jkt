@@ -595,14 +595,42 @@ function showToast(message, type = "info") {
         }
 
         function handleLogout() {
-            showConfirmModal("Keluar dari Portal", "Apakah Anda yakin ingin keluar?", () => {
-                currentUser = null;
-                document.getElementById("dashboardView").classList.add("hidden");
-                document.getElementById("loginView").classList.remove("hidden");
-                document.getElementById("inputPassword").value = "";
-                showToast("Anda telah berhasil keluar.", "info");
-            });
-        }
+    showConfirmModal("Keluar dari Portal", "Apakah Anda yakin ingin keluar?", () => {
+        // 1. Reset variabel global user & master data
+        currentUser = null;
+        masterData = { leger: [], inputNilai: [], extra: [], walasPlotting: [], guru: [], config: {} };
+
+        // 2. Kosongkan nilai input form login
+        document.getElementById("inputUsername").value = "";
+        document.getElementById("inputPassword").value = "";
+
+        // 3. Resets & Kosongkan dropdown serta tabel agar data user lama hilang
+        const selMapel = document.getElementById("selectMapelGuru");
+        const selKelasGuru = document.getElementById("selectKelasGuru");
+        const selKelasWalas = document.getElementById("selectKelasWalas");
+        const selKelasCetak = document.getElementById("selectKelasCetak");
+
+        if (selMapel) selMapel.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+        if (selKelasGuru) selKelasGuru.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        if (selKelasWalas) selKelasWalas.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        if (selKelasCetak) selKelasCetak.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+
+        const tbodyNilai = document.getElementById("tableBodyNilaiGuru");
+        const tbodyWalas = document.getElementById("tableBodyWalas");
+        if (tbodyNilai) tbodyNilai.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-slate-400 font-medium">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>';
+        if (tbodyWalas) tbodyWalas.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-400 font-medium">Pilih Kelas Binaan untuk memuat daftar siswa.</td></tr>';
+
+        // 4. Bersihkan Session Storage jika Anda menggunakannya
+        sessionStorage.clear();
+        localStorage.clear();
+
+        // 5. Kembali ke tampilan Login
+        document.getElementById("dashboardView").classList.add("hidden");
+        document.getElementById("loginView").classList.remove("hidden");
+
+        showToast("Anda telah berhasil keluar.", "info");
+    });
+}
 
         async function loadInitialData() {
     try {
