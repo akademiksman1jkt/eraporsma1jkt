@@ -676,13 +676,18 @@ function showToast(message, type = "info") {
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         const isAdmin = String(currentUser.role).toLowerCase() === "admin";
 
-        const myWalasRows = masterData.walasPlotting.slice(1).filter(r => {
-            const nipWalas = String(r[1] || "").trim();
-            const namaWalas = String(r[2] || "").trim().toLowerCase();
-            const curUser = String(currentUser.username || "").trim();
-            const curNama = String(currentUser.namaGuru || "").trim().toLowerCase();
+        // PERBAIKAN: Pembacaan kolom DB_Wali_Kelas disesuaikan (r[1] = Nama, r[2] = NIP)
+        const curUser = String(currentUser.username || "").trim().toLowerCase();
+        const curNama = String(currentUser.namaGuru || "").trim().toLowerCase();
 
-            return (nipWalas && nipWalas === curUser) || (namaWalas && namaWalas.includes(curNama));
+        const myWalasRows = masterData.walasPlotting.slice(1).filter(r => {
+            const namaWalas = String(r[1] || "").trim().toLowerCase(); // Kolom B: NAMA_WALI_KELAS
+            const nipWalas = String(r[2] || "").trim().toLowerCase();  // Kolom C: NIP_WALI_KELAS
+
+            const isNipMatch = nipWalas && nipWalas === curUser;
+            const isNamaMatch = namaWalas && (namaWalas === curNama || namaWalas.includes(curNama));
+
+            return isNipMatch || isNamaMatch;
         });
 
         const isWaliKelas = myWalasRows.length > 0;
@@ -706,6 +711,17 @@ function showToast(message, type = "info") {
             btnTabAdmin.classList.add("hidden");
         }
 
+        // PERBAIKAN: Pengisian dropdown kelas binaan untuk Wali Kelas
+        if (isWaliKelas && !isAdmin) {
+            myWalasRows.forEach(row => {
+                const kelasBinaan = row[0]; // Kolom A: KELAS
+                if (kelasBinaan) {
+                    selKelasWalas.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                    selKelasCetak.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                }
+            });
+        }
+
         // PERCABANGAN PENGISIAN DROPDOWN UTAMA
         if (isAdmin) {
             // Jika ADMIN: tampilkan semua mapel dan kelas
@@ -724,10 +740,7 @@ function showToast(message, type = "info") {
                 }
             });
         } else {
-            // Jika GURU (MULTI-ROW SUPPORT):
-            // Cari seluruh baris di DB_Guru yang memiliki USERNAME milik guru yang sedang login
-            const curUser = String(currentUser.username || "").trim().toLowerCase();
-            
+            // Jika GURU (MULTI-ROW SUPPORT)
             const myGuruRows = (masterData.guru.length > 0 ? masterData.guru : []).filter(r => {
                 const un = String(r[0] || "").trim().toLowerCase(); // Kolom A: USERNAME
                 return un === curUser;
@@ -756,17 +769,6 @@ function showToast(message, type = "info") {
                     selMapel.innerHTML += `<option value="${code}">${code}</option>`;
                 }
             });
-
-            // Pengisian kelas wali kelas jika ada
-            if (isWaliKelas) {
-                myWalasRows.forEach(row => {
-                    const kelasBinaan = row[0];
-                    if (kelasBinaan) {
-                        selKelasWalas.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                        selKelasCetak.innerHTML += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                    }
-                });
-            }
         }
 
     } catch (err) {
