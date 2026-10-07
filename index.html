@@ -1495,6 +1495,15 @@ function showToast(message, type = "info") {
 
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
+    // === TAMBAHAN PENTING: CARI DATA WALI KELAS BERDASARKAN KELAS TARGET ===
+    const walasRow = (masterData.walasPlotting || []).slice(1).find(r => 
+        String(r[0] || "").trim().toUpperCase() === String(kelas || "").trim().toUpperCase()
+    );
+
+    // Kolom B (r[1]) = NAMA_WALI_KELAS | Kolom C (r[2]) = NIP_WALI_KELAS
+    const namaWalasDb = walasRow && walasRow[1] ? String(walasRow[1]).trim() : "";
+    const nipWalasDb  = walasRow && walasRow[2] ? String(walasRow[2]).trim() : "-";
+
     containerPrint.innerHTML = "";
     siswaTarget.forEach((s) => {
         const nisn = s[0];
@@ -1508,7 +1517,10 @@ function showToast(message, type = "info") {
         const izin = extraData ? extraData[6] : "0";
         const alpha = extraData ? extraData[7] : "0";
         const catatan = extraData ? extraData[8] : "-";
-        const namaWalas = extraData ? extraData[3] : (currentUser ? currentUser.namaGuru : "Wali Kelas");
+        
+        // Penentuan Nama & NIP Walas (Prioritas dari DB_Wali_Kelas, fallback ke extra/currentUser)
+        const namaWalasFinal = namaWalasDb || (extraData ? extraData[3] : (currentUser ? currentUser.namaGuru : "Wali Kelas"));
+        const nipWalasFinal  = (nipWalasDb && nipWalasDb !== "" && nipWalasDb !== "-") ? nipWalasDb : "-";
 
         let rowsNilaiHtml = "";
         if (nilaiSiswaList.length > 0) {
@@ -1588,7 +1600,7 @@ function showToast(message, type = "info") {
                     </div>
                 </div>
 
-                <!-- TANDA TANGAN -->
+                <!-- TANDA TANGAN DENGAN NIP DINAMIS -->
                 <div class="pt-2 grid grid-cols-2 text-xs text-center font-bold">
                     <div>
                         <p>Mengetahui,</p>
@@ -1600,8 +1612,8 @@ function showToast(message, type = "info") {
                         <p>Jakarta, 6 Oktober 2026</p>
                         <p>Wali Kelas,</p>
                         <div class="h-12"></div>
-                        <p class="font-black text-indigo-950 underline">${namaWalas}</p>
-                        <p class="text-slate-600 font-mono">NIP. -</p>
+                        <p class="font-black text-indigo-950 underline uppercase">${namaWalasFinal}</p>
+                        <p class="text-slate-600 font-mono">NIP. ${nipWalasFinal}</p>
                     </div>
                 </div>
             </div>
