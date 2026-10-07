@@ -953,59 +953,89 @@ function showToast(message, type = "info") {
 }
 
         async function simpanSemuaCatatanWalasBatch() {
-            const kelas = document.getElementById("selectKelasWalas").value;
-            const rows = document.querySelectorAll(".row-walas");
+    const kelas = document.getElementById("selectKelasWalas").value;
+    const rows = document.querySelectorAll(".row-walas");
 
-            if (!kelas || rows.length === 0) {
-                showToast("Silakan pilih Kelas Binaan Wali Kelas terlebih dahulu!", "warning");
-                return;
-            }
+    if (!kelas || rows.length === 0) {
+        showToast("Silakan pilih Kelas Binaan Wali Kelas terlebih dahulu!", "warning");
+        return;
+    }
 
-            const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
-            let dataWalas = [];
-            rows.forEach(r => {
-                const nisn = r.dataset.nisn;
-                const namaSiswa = r.dataset.nama;
+    let dataWalas = [];
+    rows.forEach(r => {
+        const nisn = r.dataset.nisn;
+        const namaSiswa = r.dataset.nama;
 
-                const sakit = document.getElementById(`sakit_${nisn}`).value;
-                const izin = document.getElementById(`izin_${nisn}`).value;
-                const alpha = document.getElementById(`alpha_${nisn}`).value;
-                const catatan = document.getElementById(`catatan_${nisn}`).value;
+        const sakit = document.getElementById(`sakit_${nisn}`).value;
+        const izin = document.getElementById(`izin_${nisn}`).value;
+        const alpha = document.getElementById(`alpha_${nisn}`).value;
+        const catatan = document.getElementById(`catatan_${nisn}`).value;
 
-                dataWalas.push({
-                    nisn: nisn,
-                    namaSiswa: namaSiswa,
-                    kelas: kelas,
-                    walas: currentUser.namaGuru,
-                    semester: semAktif,
-                    sakit: sakit,
-                    izin: izin,
-                    alpha: alpha,
-                    catatan: catatan
-                });
-            });
+        dataWalas.push({
+            nisn: nisn,
+            namaSiswa: namaSiswa,
+            kelas: kelas,
+            walas: currentUser.namaGuru,
+            semester: semAktif,
+            sakit: sakit,
+            izin: izin,
+            alpha: alpha,
+            catatan: catatan
+        });
+    });
 
-            showConfirmModal("Simpan Catatan Walas", `Apakah Anda yakin ingin menyimpan presensi & catatan seluruh ${dataWalas.length} siswa di kelas ini?`, async () => {
-                const formData = new URLSearchParams();
-                formData.append("action", "simpanCatatanWalasBatch");
-                formData.append("dataWalas", JSON.stringify(dataWalas));
+    showConfirmModal("Simpan Catatan Walas", `Apakah Anda yakin ingin menyimpan presensi & catatan seluruh ${dataWalas.length} siswa di kelas ini?`, async () => {
+        // Cari elemen tombol simpan walas (sesuaikan ID jika berbeda)
+        const btnSimpan = document.getElementById("btnSimpanWalasBatch") || event?.target;
+        const originalText = btnSimpan ? btnSimpan.innerHTML : "Simpan Catatan Walas";
 
-                try {
-                    const res = await fetch(API_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: formData.toString()
-                    });
-                    const json = await res.json();
-                    showToast(json.message, "success");
-                    await loadInitialData();
-                    loadTableSiswaWalas();
-                } catch(err) {
-                    showToast("Gagal menyimpan presensi & catatan walas!", "error");
-                }
-            });
+        // 1. UBAH TOMBOL MENJADI LOADING & DISABLE
+        if (btnSimpan) {
+            btnSimpan.disabled = true;
+            btnSimpan.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Memproses Penyimpanan...
+            `;
         }
+
+        showToast("Sedang menyimpan presensi & catatan wali kelas...", "info");
+
+        const formData = new URLSearchParams();
+        formData.append("action", "simpanCatatanWalasBatch");
+        formData.append("dataWalas", JSON.stringify(dataWalas));
+
+        try {
+            const res = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString()
+            });
+            const json = await res.json();
+            
+            if (json.status === "error") {
+                showToast(json.message || "Gagal menyimpan presensi & catatan walas!", "error");
+            } else {
+                showToast(json.message || "Presensi & Catatan Walas berhasil disimpan!", "success");
+                await loadInitialData();
+                loadTableSiswaWalas();
+            }
+        } catch(err) {
+            console.error(err);
+            showToast("Gagal menyimpan presensi & catatan walas! Periksa koneksi internet Anda.", "error");
+        } finally {
+            // 2. KEMBALIKAN TOMBOL KE TAMPILAN SEMULA
+            if (btnSimpan) {
+                btnSimpan.disabled = false;
+                btnSimpan.innerHTML = originalText;
+            }
+        }
+    });
+}
 
         function downloadTemplateWalas() {
     const kelas = document.getElementById("selectKelasWalas").value;
@@ -1177,59 +1207,89 @@ function showToast(message, type = "info") {
         }
 
         async function simpanSemuaNilaiBatch() {
-            const mapel = document.getElementById("selectMapelGuru").value;
-            const rows = document.querySelectorAll(".row-siswa");
+    const mapel = document.getElementById("selectMapelGuru").value;
+    const rows = document.querySelectorAll(".row-siswa");
 
-            if (!mapel || rows.length === 0) {
-                showToast("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!", "warning");
-                return;
-            }
+    if (!mapel || rows.length === 0) {
+        showToast("Silakan pilih Mata Pelajaran dan Kelas terlebih dahulu!", "warning");
+        return;
+    }
 
-            const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
-            let dataNilai = [];
-            rows.forEach(r => {
-                const nisn = r.dataset.nisn;
-                const namaSiswa = r.dataset.nama;
-                const kelas = r.dataset.kelas;
+    let dataNilai = [];
+    rows.forEach(r => {
+        const nisn = r.dataset.nisn;
+        const namaSiswa = r.dataset.nama;
+        const kelas = r.dataset.kelas;
 
-                const n1 = document.getElementById(`n1_${nisn}`).value;
-                const n2 = document.getElementById(`n2_${nisn}`).value;
-                const n3 = document.getElementById(`n3_${nisn}`).value;
-                const n4 = document.getElementById(`n4_${nisn}`).value;
+        const n1 = document.getElementById(`n1_${nisn}`).value;
+        const n2 = document.getElementById(`n2_${nisn}`).value;
+        const n3 = document.getElementById(`n3_${nisn}`).value;
+        const n4 = document.getElementById(`n4_${nisn}`).value;
 
-                dataNilai.push({
-                    nisn: nisn,
-                    namaSiswa: namaSiswa,
-                    kelas: kelas,
-                    kodeMapel: mapel,
-                    semester: semAktif,
-                    nilai1: n1,
-                    nilai2: n2,
-                    nilai3: n3,
-                    nilai4: n4
-                });
-            });
+        dataNilai.push({
+            nisn: nisn,
+            namaSiswa: namaSiswa,
+            kelas: kelas,
+            kodeMapel: mapel,
+            semester: semAktif,
+            nilai1: n1,
+            nilai2: n2,
+            nilai3: n3,
+            nilai4: n4
+        });
+    });
 
-            showConfirmModal("Simpan Nilai Kelas", `Apakah Anda yakin ingin menyimpan nilai seluruh ${dataNilai.length} siswa di kelas ini?`, async () => {
-                const formData = new URLSearchParams();
-                formData.append("action", "simpanSemuaNilaiBatch");
-                formData.append("dataNilai", JSON.stringify(dataNilai));
+    showConfirmModal("Simpan Nilai Kelas", `Apakah Anda yakin ingin menyimpan nilai seluruh ${dataNilai.length} siswa di kelas ini?`, async () => {
+        // Cari elemen tombol simpan (sesuaikan ID jika beda)
+        const btnSimpan = document.getElementById("btnSimpanBatch") || event?.target;
+        const originalText = btnSimpan ? btnSimpan.innerHTML : "Simpan Semua Nilai";
 
-                try {
-                    const res = await fetch(API_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                        body: formData.toString()
-                    });
-                    const json = await res.json();
-                    showToast(json.message, "success");
-                    await loadInitialData();
-                } catch(err) {
-                    showToast("Gagal menyimpan nilai!", "error");
-                }
-            });
+        // 1. TAMPILKAN STATUS LOADING & DISABLE TOMBOL
+        if (btnSimpan) {
+            btnSimpan.disabled = true;
+            btnSimpan.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Menyimpan Data...
+            `;
         }
+
+        showToast("Sedang menyimpan nilai ke database...", "info");
+
+        const formData = new URLSearchParams();
+        formData.append("action", "simpanSemuaNilaiBatch");
+        formData.append("dataNilai", JSON.stringify(dataNilai));
+
+        try {
+            const res = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: formData.toString()
+            });
+            const json = await res.json();
+            
+            if (json.status === "error") {
+                showToast(json.message || "Gagal menyimpan nilai!", "error");
+            } else {
+                showToast(json.message || "Nilai berhasil disimpan!", "success");
+                await loadInitialData();
+            }
+        } catch(err) {
+            console.error(err);
+            showToast("Gagal menyimpan nilai! Periksa koneksi internet Anda.", "error");
+        } finally {
+            // 2. KEMBALIKAN TOMBOL KE TAMPILAN SEMULA
+            if (btnSimpan) {
+                btnSimpan.disabled = false;
+                btnSimpan.innerHTML = originalText;
+            }
+        }
+    });
+}
 
         async function saveAdminConfig() {
             const sem = document.getElementById("adminSemesterSelect").value;
