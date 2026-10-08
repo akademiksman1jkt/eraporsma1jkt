@@ -1683,19 +1683,23 @@ function showToast(message, type = "info") {
     <div class="rapor-page bg-white p-6 rounded-2xl shadow-xl border-2 border-slate-200 max-w-4xl mx-auto space-y-4 text-slate-800 my-4">
         <!-- KOP SURAT SEKOLAH -->
         <div class="flex items-center justify-between border-b-4 border-indigo-950 pb-2">
-            <div class="w-16 h-16 flex items-center justify-center shrink-0">
-                <!-- LOGO PEMPROV DKI JAKARTA HITAM PUTIH -->
+            <!-- CONTAINER LOGO (Diberi pl-4 agar logo tidak terlalu mempet ke pinggir kiri) -->
+            <div class="w-20 h-16 flex items-center justify-center shrink-0 pl-4">
                 <img src="https://i.ibb.co.com/1k5jmRK/lambang-dki-jakarta.png" 
                      alt="Logo Pemprov DKI Jakarta" 
                      class="max-h-full max-w-full object-contain">
             </div>
+
+            <!-- TEKS KOP UTAMA -->
             <div class="text-center flex-1 px-2">
                 <h1 class="text-xs font-black uppercase text-indigo-950 tracking-wider">PEMERINTAH PROVINSI DKI JAKARTA</h1>
                 <h2 class="text-xs font-black uppercase text-indigo-950 tracking-wider">DINAS PENDIDIKAN</h2>
                 <h3 class="text-base font-black uppercase text-slate-900 tracking-widest mt-0.5">SMA NEGERI 1 JAKARTA</h3>
                 <p class="text-[10px] font-semibold text-slate-600">Jl. Budi Utomo No.7, Pasar Baru, Kec. Sawah Besar, Jakarta Pusat</p>
             </div>
-            <div class="w-16 shrink-0"></div>
+
+            <!-- ELEMEN PENYEIMBANG KANAN (Disesuaikan ukurannya w-20 agar posisi teks simetris sempurna di tengah) -->
+            <div class="w-20 shrink-0"></div>
         </div>
 
                 <!-- JUDUL RAPOR -->
