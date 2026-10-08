@@ -1680,16 +1680,19 @@ function showToast(message, type = "info") {
         }
 
         containerPrint.innerHTML += `
-            <div class="rapor-page bg-white p-6 rounded-2xl shadow-xl border-2 border-slate-200 max-w-4xl mx-auto space-y-4 text-slate-800 my-4">
+    <div class="rapor-page bg-white p-6 rounded-2xl shadow-xl border-2 border-slate-200 max-w-4xl mx-auto space-y-4 text-slate-800 my-4">
         <!-- KOP SURAT SEKOLAH -->
         <div class="flex items-center justify-between border-b-4 border-indigo-950 pb-2">
             <div class="w-16 h-16 flex items-center justify-center shrink-0">
-                <img src="https://iili.io/nnSW4xR.png" alt="Logo SMAN 1 Jakarta" class="max-h-full max-w-full object-contain">
+                <!-- LOGO PEMPROV DKI JAKARTA (HITAM PUTIH / GRAYSCALE) -->
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/eb/Coat_of_arms_of_Jakarta.svg/500px-Coat_of_arms_of_Jakarta.svg.png" 
+                     alt="Logo Pemprov DKI Jakarta" 
+                     class="max-h-full max-w-full object-contain grayscale">
             </div>
             <div class="text-center flex-1 px-2">
                 <h1 class="text-xs font-black uppercase text-indigo-950 tracking-wider">PEMERINTAH PROVINSI DKI JAKARTA</h1>
                 <h2 class="text-xs font-black uppercase text-indigo-950 tracking-wider">DINAS PENDIDIKAN</h2>
-                <h3 class="text-base font-black uppercase text-slate-900 tracking-widest mt-0.5">SMAN 1 JAKARTA</h3>
+                <h3 class="text-base font-black uppercase text-slate-900 tracking-widest mt-0.5">SMA NEGERI 1 JAKARTA</h3>
                 <p class="text-[10px] font-semibold text-slate-600">Jl. Budi Utomo No.7, Pasar Baru, Kec. Sawah Besar, Jakarta Pusat</p>
             </div>
             <div class="w-16 shrink-0"></div>
