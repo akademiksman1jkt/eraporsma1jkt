@@ -71,7 +71,7 @@
             margin: 0 auto !important; 
             padding: 8mm !important;
             box-shadow: none !important;
-            border: 1.5pt solid #0f172a !important;
+            border: none !important;
             width: 100% !important;
             max-height: 287mm !important; /* Batas tinggi maksimal 1 lembar A4 */
             box-sizing: border-box !important;
@@ -1766,7 +1766,7 @@ nilaiSiswaList.sort((a, b) => {
                         <td class="p-1.5 border-r border-indigo-200">${formatNilai(val3, false)}</td>
                         <td class="p-1.5 border-r-2 border-indigo-300">${formatNilai(val4, false)}</td>
                         <td class="p-1.5 border-r-2 border-indigo-300 bg-indigo-50/70">${formatNilai(nItem[9], true)}</td>
-                        <td class="p-1.5 ${trenClass}">${trenVal}</td>
+                        <td class="p-1 w-12 text-center ${trenClass}">${trenVal}</td>
                     </tr>
                 `;
             });
@@ -1775,7 +1775,7 @@ nilaiSiswaList.sort((a, b) => {
         }
 
         containerPrint.innerHTML += `
-    <div class="rapor-page bg-white p-6 rounded-2xl shadow-xl border-2 border-slate-200 max-w-4xl mx-auto space-y-4 text-slate-800 my-4">
+    <div class="rapor-page bg-white p-6 max-w-4xl mx-auto space-y-4 text-slate-800 my-4">
         <!-- KOP SURAT SEKOLAH -->
         <div class="flex items-center justify-between border-b-4 border-indigo-950 pb-2">
             <div class="w-20 h-16 flex items-center justify-center shrink-0 pl-4">
@@ -1815,12 +1815,12 @@ nilaiSiswaList.sort((a, b) => {
                     <tr class="bg-indigo-100 text-slate-900 font-black uppercase tracking-wider text-[10px] text-center border-b-2 border-indigo-400">
                         <th class="p-2 w-8 border-r-2 border-indigo-400">No</th>
                         <th class="p-2 border-r-2 border-indigo-400 text-left">Mata Pelajaran</th>
-                        <th class="p-2 w-12 border-r border-indigo-400">${lbl1}</th>
-                        <th class="p-2 w-12 border-r border-indigo-400">${lbl2}</th>
-                        <th class="p-2 w-12 border-r border-indigo-400">${lbl3}</th>
-                        <th class="p-2 w-12 border-r-2 border-indigo-400">${lbl4}</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl1}</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl2}</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl3}</th>
+                        <th class="p-2 w-14 border-r-2 border-indigo-400">${lbl4}</th>
                         <th class="p-2 w-16 border-r-2 border-indigo-400 bg-indigo-200/90 text-slate-900">Rata-Rata</th>
-                        <th class="p-2 w-20">Capaian/Tren</th>
+                        <th class="p-2 w-14">Capaian</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-indigo-300">
@@ -1844,7 +1844,7 @@ nilaiSiswaList.sort((a, b) => {
         </div>
 
         <!-- TANDA TANGAN -->
-        <div class="pt-2 grid grid-cols-2 text-xs text-center font-bold">
+        <div class="pt-2 grid grid-cols-2 text-xs text-left font-bold">
             <div>
                 <p>Mengetahui,</p>
                 <p>Orang Tua / Wali Siswa</p>
