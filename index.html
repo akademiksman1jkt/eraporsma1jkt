@@ -1580,13 +1580,11 @@ function showToast(message, type = "info") {
 
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
-    // Label Header Kolom dari Config
     const lbl1 = masterData.config.LABEL_COL1 || "Nilai 1";
     const lbl2 = masterData.config.LABEL_COL2 || "Nilai 2";
     const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
     const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
 
-    // Cari Data Wali Kelas
     const walasRow = (masterData.walasPlotting || []).slice(1).find(r => 
         String(r[0] || "").trim().toUpperCase() === String(kelas || "").trim().toUpperCase()
     );
@@ -1594,7 +1592,6 @@ function showToast(message, type = "info") {
     const namaWalasDb = walasRow && walasRow[1] ? String(walasRow[1]).trim() : "";
     const nipWalasDb  = walasRow && walasRow[2] ? String(walasRow[2]).trim() : "-";
 
-    // Deteksi apakah siswa merupakan kelas X
     const isKelasX = String(kelas || "").trim().toUpperCase().startsWith("X-") || String(kelas || "").trim().toUpperCase() === "X";
 
     containerPrint.innerHTML = "";
@@ -1603,30 +1600,47 @@ function showToast(message, type = "info") {
         const nis = s[1] || "-";
         const nama = s[2];
 
-        // Ambil Nilai Histori Rapor Semester Lalu dari Master Leger (jika ada)
         const nilaiHistoriSiswa = parseFloat(s[4] || s[5] || 0);
 
-        // 1. Ambil seluruh entri nilai mentah siswa untuk semester aktif
         const rawNilaiSiswaList = masterData.inputNilai.filter(r => 
             String(r[0]).trim() === String(nisn).trim() && 
             String(r[4]).trim() === String(semAktif).trim()
         );
 
-        // 2. FILTER KHUSUS MAPEL AGAMA:
-        const nilaiSiswaList = rawNilaiSiswaList.filter(nItem => {
+        // Filter Mapel Agama
+        const filteredNilai = rawNilaiSiswaList.filter(nItem => {
             const mapelCode = String(nItem[3] || "").trim().toUpperCase();
-
-            if (!mapelCode.startsWith("AGM")) {
-                return true;
-            }
-
-            const hasValidGrade = [nItem[5], nItem[6], nItem[7], nItem[8], nItem[9]].some(v => {
+            if (!mapelCode.startsWith("AGM")) return true;
+            return [nItem[5], nItem[6], nItem[7], nItem[8], nItem[9]].some(v => {
                 const str = String(v || "").trim();
                 return str !== "" && str !== "-" && str !== "0";
             });
-
-            return hasValidGrade;
         });
+
+        // ============================================================
+        // PERBAIKAN BUG DOUBLE MAPEL (Penggabungan KODE KIMIA & KIM)
+        // ============================================================
+        const mapelMap = new Map();
+        filteredNilai.forEach(nItem => {
+            let code = String(nItem[3] || "").trim().toUpperCase();
+            
+            // Standardisasi kode alias yang sama
+            if (code === "KIM") code = "KIMIA";
+            
+            // Jika kode mapel sudah ada, abaikan atau timpa entri yang kosong
+            if (!mapelMap.has(code)) {
+                mapelMap.set(code, nItem);
+            } else {
+                // Jika entri sebelumnya kosong tapi entri baru terisi, gunakan entri baru
+                const existing = mapelMap.get(code);
+                const isExistingEmpty = !existing[5] && !existing[6] && !existing[7] && !existing[8];
+                if (isExistingEmpty) {
+                    mapelMap.set(code, nItem);
+                }
+            }
+        });
+
+        const nilaiSiswaList = Array.from(mapelMap.values());
         
         const extraData = masterData.extra.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
         const sakit = extraData ? extraData[5] : "0";
@@ -1640,7 +1654,8 @@ function showToast(message, type = "info") {
         let rowsNilaiHtml = "";
         if (nilaiSiswaList.length > 0) {
             nilaiSiswaList.forEach((nItem, i) => {
-                const mapelCode = nItem[3];
+                let mapelCode = String(nItem[3] || "").trim().toUpperCase();
+                if (mapelCode === "KIM") mapelCode = "KIMIA";
                 const mapelName = MASTER_MAPEL_NAME[mapelCode] || mapelCode;
                 
                 const val1 = nItem[5] || "-";
@@ -1652,7 +1667,7 @@ function showToast(message, type = "info") {
                 let trenVal = "-";
                 let trenClass = "text-slate-800";
 
-                // A. KHUSUS KELAS X: Penilaian berbasis KKM Ketuntasan (< 75)
+                // A. KHUSUS KELAS X: Tampilan SIMBOL SAJA (✔ / ❌)
                 if (isKelasX) {
                     const val1Num = parseFloat(val1);
                     const val2Num = parseFloat(val2);
@@ -1662,17 +1677,17 @@ function showToast(message, type = "info") {
                     const isAdaNilaiMerah = [val1Num, val2Num, val3Num, val4Num, nilaiRata].some(num => !isNaN(num) && num < 75);
 
                     if (isAdaNilaiMerah) {
-                        trenVal = "❌ Tidak Tuntas";
-                        trenClass = "text-rose-600 font-extrabold";
+                        trenVal = "❌";
+                        trenClass = "text-rose-600 text-base font-extrabold";
                     } else if (nilaiRata >= 75) {
-                        trenVal = "✔ Tuntas";
-                        trenClass = "text-emerald-600 font-extrabold";
+                        trenVal = "✔";
+                        trenClass = "text-emerald-600 text-base font-extrabold";
                     } else {
                         trenVal = "-";
                         trenClass = "text-slate-400 font-medium";
                     }
                 } 
-                // B. KELAS XI & XII: Penilaian berbasis Tren Angka Histori Semester Lalu
+                // B. KELAS XI & XII: Tren Angka Histori
                 else {
                     if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
                         const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
