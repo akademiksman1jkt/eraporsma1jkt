@@ -804,10 +804,19 @@ function showToast(message, type = "info") {
     if (targetHeader.startsWith("AGM")) targetHeader = "AGM";
     const mapelIndex = DAFTAR_MAPEL_HEADER.indexOf(targetHeader);
 
-    const isKelasX = kelas.toUpperCase().startsWith("X-") || kelas.toUpperCase() === "X";
+    // 1. Ekstrak tingkat kelas secara presisi (X, XI, atau XII)
+    const tingkatMatch = kelas.trim().match(/^(XII|XI|X)\b/i);
+    const tingkatKelas = tingkatMatch ? tingkatMatch[1].toUpperCase() : kelas.split("-")[0].trim().toUpperCase();
+    const isKelasX = tingkatKelas === "X";
 
-    const tingkatKelas = kelas.split("-")[0].trim();
-    const totalSiswaAngkatan = masterData.leger.slice(1).filter(r => String(r[3]).trim().startsWith(tingkatKelas)).length;
+    // 2. Filter total siswa angkatan dengan pencocokan persis batas kata (word boundary)
+    const totalSiswaAngkatan = masterData.leger.slice(1).filter(r => {
+        const kelasRow = String(r[3] || "").trim();
+        const rowMatch = kelasRow.match(/^(XII|XI|X)\b/i);
+        return rowMatch && rowMatch[1].toUpperCase() === tingkatKelas;
+    }).length;
+
+    // 3. Hitung Kuota Eligible 40% berdasarkan angkatan presisi
     const kuotaEligible40Pct = Math.floor(totalSiswaAngkatan * 0.40);
 
     const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
@@ -882,9 +891,6 @@ function showToast(message, type = "info") {
             </tr>
         `;
 
-        // ============================================================
-        // [PERBAIKAN] Jalankan kalkulasi tren otomatis saat data dimuat
-        // ============================================================
         setTimeout(() => {
             hitungRataAuto(nisn, nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0);
         }, 0);
@@ -1588,6 +1594,9 @@ function showToast(message, type = "info") {
     const namaWalasDb = walasRow && walasRow[1] ? String(walasRow[1]).trim() : "";
     const nipWalasDb  = walasRow && walasRow[2] ? String(walasRow[2]).trim() : "-";
 
+    // Deteksi apakah siswa merupakan kelas X
+    const isKelasX = String(kelas || "").trim().toUpperCase().startsWith("X-") || String(kelas || "").trim().toUpperCase() === "X";
+
     containerPrint.innerHTML = "";
     siswaTarget.forEach((s) => {
         const nisn = s[0];
@@ -1640,29 +1649,51 @@ function showToast(message, type = "info") {
                 const val4 = nItem[8] || "-";
                 const nilaiRata = parseFloat(nItem[9]) || 0;
 
-                // KALKULASI TREN DENGAN NILAI HISTORI SEMESTER LALU
                 let trenVal = "-";
                 let trenClass = "text-slate-800";
 
-                if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
-                    const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
-                    if (diff > 0) {
-                        trenVal = `↗ +${diff}`;
-                        trenClass = "text-emerald-600 font-extrabold";
-                    } else if (diff < 0) {
-                        trenVal = `↘ ${diff}`;
+                // A. KHUSUS KELAS X: Penilaian berbasis KKM Ketuntasan (< 75)
+                if (isKelasX) {
+                    const val1Num = parseFloat(val1);
+                    const val2Num = parseFloat(val2);
+                    const val3Num = parseFloat(val3);
+                    const val4Num = parseFloat(val4);
+
+                    const isAdaNilaiMerah = [val1Num, val2Num, val3Num, val4Num, nilaiRata].some(num => !isNaN(num) && num < 75);
+
+                    if (isAdaNilaiMerah) {
+                        trenVal = "❌ Tidak Tuntas";
                         trenClass = "text-rose-600 font-extrabold";
+                    } else if (nilaiRata >= 75) {
+                        trenVal = "✔ Tuntas";
+                        trenClass = "text-emerald-600 font-extrabold";
                     } else {
-                        trenVal = `→ 0.0`;
-                        trenClass = "text-slate-600 font-bold";
+                        trenVal = "-";
+                        trenClass = "text-slate-400 font-medium";
                     }
-                } else {
-                    for (let idx = 10; idx < nItem.length; idx++) {
-                        const valStr = String(nItem[idx] || "").trim();
-                        if (!valStr || valStr.includes("/") || valStr.includes(":")) continue;
-                        if (valStr !== "-" && valStr !== "") {
-                            trenVal = valStr;
-                            break;
+                } 
+                // B. KELAS XI & XII: Penilaian berbasis Tren Angka Histori Semester Lalu
+                else {
+                    if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
+                        const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
+                        if (diff > 0) {
+                            trenVal = `↗ +${diff}`;
+                            trenClass = "text-emerald-600 font-extrabold";
+                        } else if (diff < 0) {
+                            trenVal = `↘ ${diff}`;
+                            trenClass = "text-rose-600 font-extrabold";
+                        } else {
+                            trenVal = `→ 0.0`;
+                            trenClass = "text-slate-600 font-bold";
+                        }
+                    } else {
+                        for (let idx = 10; idx < nItem.length; idx++) {
+                            const valStr = String(nItem[idx] || "").trim();
+                            if (!valStr || valStr.includes("/") || valStr.includes(":")) continue;
+                            if (valStr !== "-" && valStr !== "") {
+                                trenVal = valStr;
+                                break;
+                            }
                         }
                     }
                 }
