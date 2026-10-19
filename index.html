@@ -1655,7 +1655,34 @@ function showToast(message, type = "info") {
             }
         });
 
-        const nilaiSiswaList = Array.from(mapelMap.values());
+        // 1. Buat pemetaan urutan berdasarkan sheet DB_Mapel (Kolom A: KODE_MAPEL, Kolom D: URUTAN)
+const mapelUrutanMap = new Map();
+if (masterData.mapel && masterData.mapel.length > 1) {
+    masterData.mapel.slice(1).forEach(row => {
+        const rawK = String(row[0] || "").trim().toUpperCase(); // Kolom A
+        const kCode = MAPEL_ALIAS[rawK] || rawK;
+        const urutan = parseInt(row[3]) || 99;                 // Kolom D (URUTAN)
+        mapelUrutanMap.set(kCode, urutan);
+    });
+}
+
+// 2. Ambil nilai siswa dari mapelMap
+let nilaiSiswaList = Array.from(mapelMap.values());
+
+// 3. Urutkan berdasarkan nomor urut di DB_Mapel
+nilaiSiswaList.sort((a, b) => {
+    let rawCodeA = String(a[3] || "").trim().toUpperCase();
+    let rawCodeB = String(b[3] || "").trim().toUpperCase();
+
+    let codeA = MAPEL_ALIAS[rawCodeA] || rawCodeA;
+    let codeB = MAPEL_ALIAS[rawCodeB] || rawCodeB;
+
+    // Khusus Agama, samakan urutannya ke kode dasar "AGM" jika tidak ditemukan urutan spesifik
+    let orderA = mapelUrutanMap.get(codeA) || (codeA.startsWith("AGM") ? (mapelUrutanMap.get("AGM") || 1) : 99);
+    let orderB = mapelUrutanMap.get(codeB) || (codeB.startsWith("AGM") ? (mapelUrutanMap.get("AGM") || 1) : 99);
+
+    return orderA - orderB;
+});
         
         const extraData = masterData.extra.find(r => String(r[0]).trim() === String(nisn).trim() && String(r[4]).trim() === String(semAktif).trim());
         const sakit = extraData ? extraData[5] : "0";
@@ -1793,7 +1820,7 @@ function showToast(message, type = "info") {
                         <th class="p-2 w-12 border-r border-indigo-400">${lbl3}</th>
                         <th class="p-2 w-12 border-r-2 border-indigo-400">${lbl4}</th>
                         <th class="p-2 w-16 border-r-2 border-indigo-400 bg-indigo-200/90 text-slate-900">Rata-Rata</th>
-                        <th class="p-2 w-20">Capai / Tren</th>
+                        <th class="p-2 w-20">Capaian/Tren</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-indigo-300">
