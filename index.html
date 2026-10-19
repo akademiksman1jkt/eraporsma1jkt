@@ -1560,14 +1560,17 @@ function showToast(message, type = "info") {
         return;
     }
 
-    // Helper untuk mewarnai merah jika nilai < 75
-    const formatNilai = (val) => {
+    // Helper untuk mewarnai merah jika nilai < 75 (ukuran font tetap sama, hanya beda ketebalan)
+    const formatNilai = (val, isBold = false) => {
         if (val === null || val === undefined || val === '' || val === '-') return '-';
         const num = parseFloat(val);
         if (isNaN(num)) return val;
+        
+        const weightClass = isBold ? "font-black" : "font-medium";
+        
         return num < 75 
-            ? `<span class="text-red-600 font-extrabold">${num}</span>` 
-            : `<span>${num}</span>`;
+            ? `<span class="text-red-600 ${weightClass}">${num}</span>` 
+            : `<span class="${weightClass}">${num}</span>`;
     };
 
     let siswaTarget = [];
@@ -1594,6 +1597,9 @@ function showToast(message, type = "info") {
     const lbl2 = masterData.config.LABEL_COL2 || "Nilai 2";
     const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
     const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
+
+    // Tanggal Rapor Dinamis dari Config
+    const tglRapor = masterData.config.TANGGAL_RAPOR || "Jakarta, 30 Oktober 2026";
 
     const walasRow = (masterData.walasPlotting || []).slice(1).find(r => 
         String(r[0] || "").trim().toUpperCase() === String(kelas || "").trim().toUpperCase()
@@ -1689,10 +1695,10 @@ function showToast(message, type = "info") {
 
                     if (isAdaNilaiMerah) {
                         trenVal = "❌";
-                        trenClass = "text-rose-600 text-base font-extrabold";
+                        trenClass = "text-rose-600 font-extrabold";
                     } else if (nilaiRata >= 75) {
                         trenVal = "✔";
-                        trenClass = "text-emerald-600 text-base font-extrabold";
+                        trenClass = "text-emerald-600 font-extrabold";
                     } else {
                         trenVal = "-";
                         trenClass = "text-slate-400 font-medium";
@@ -1725,14 +1731,14 @@ function showToast(message, type = "info") {
                 }
 
                 rowsNilaiHtml += `
-                    <tr class="border-b border-indigo-200 text-center font-bold text-slate-900">
+                    <tr class="border-b border-indigo-200 text-center text-slate-900">
                         <td class="p-1.5 border-r-2 border-indigo-300 font-medium">${i + 1}</td>
                         <td class="p-1.5 text-left border-r-2 border-indigo-300 font-extrabold text-slate-900">${mapelName}</td>
-                        <td class="p-1.5 border-r border-indigo-200 font-extrabold">${formatNilai(val1)}</td>
-                        <td class="p-1.5 border-r border-indigo-200 font-extrabold">${formatNilai(val2)}</td>
-                        <td class="p-1.5 border-r border-indigo-200 font-extrabold">${formatNilai(val3)}</td>
-                        <td class="p-1.5 border-r-2 border-indigo-300 font-extrabold">${formatNilai(val4)}</td>
-                        <td class="p-1.5 font-black text-slate-900 text-sm border-r-2 border-indigo-300 bg-indigo-50/70">${formatNilai(nItem[9])}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val1, false)}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val2, false)}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val3, false)}</td>
+                        <td class="p-1.5 border-r-2 border-indigo-300">${formatNilai(val4, false)}</td>
+                        <td class="p-1.5 border-r-2 border-indigo-300 bg-indigo-50/70">${formatNilai(nItem[9], true)}</td>
                         <td class="p-1.5 ${trenClass}">${trenVal}</td>
                     </tr>
                 `;
@@ -1819,7 +1825,7 @@ function showToast(message, type = "info") {
                 <p class="font-black text-slate-900">( .................................................... )</p>
             </div>
             <div>
-                <p>Jakarta, 30 Oktober 2026</p>
+                <p>${tglRapor}</p>
                 <p>Wali Kelas,</p>
                 <div class="h-12"></div>
                 <p class="font-black text-indigo-950 underline">${namaWalasFinal}</p>
