@@ -113,8 +113,8 @@
     "IPA": "IPA",
     "IPS": "IPS",
     "BIO": "Biologi",
-    "KIMIA": "Kimia",
-    "FISIKA": "Fisika",
+    "KIM": "Kimia",
+    "FIS": "Fisika",
     "MATLAN": "Matematika Lanjut",
     "BJPG": "Bahasa Jepang",
     "PKWU": "PKWU",
@@ -123,6 +123,15 @@
     "EKO": "Ekonomi",
     "GEO": "Geografi",
     "INF": "Informatika"
+};
+        const MAPEL_ALIAS = {
+    "KIMIA": "KIM",
+    "FISIKA": "FIS",
+    "BIOLOGI": "BIO",
+    "EKONOMI": "EKO",
+    "GEOGRAFI": "GEO",
+    "SOSIOLOGI": "SOS",
+    "INFORMATIKA": "INF"
 };
     </script>
 
@@ -653,6 +662,7 @@ function showToast(message, type = "info") {
         masterData.walasPlotting = json.walasPlotting || [];
         masterData.config = json.config || {};
         masterData.guru = json.guru || []; // Memuat data DB_Guru dari server
+        masterData.mapel = json.mapel || [];
 
         const semAktif = masterData.config.SEMESTER_AKTIF || "1";
         document.getElementById("displaySemester").value = `Semester ${semAktif}`;
@@ -1618,20 +1628,19 @@ function showToast(message, type = "info") {
         });
 
         // ============================================================
-        // PERBAIKAN BUG DOUBLE MAPEL (Penggabungan KODE KIMIA & KIM)
+        // DEDUPLIKASI UNIVERSAL MENGGUNAKAN MAPEL_ALIAS
         // ============================================================
         const mapelMap = new Map();
         filteredNilai.forEach(nItem => {
-            let code = String(nItem[3] || "").trim().toUpperCase();
+            let rawCode = String(nItem[3] || "").trim().toUpperCase();
             
-            // Standardisasi kode alias yang sama
-            if (code === "KIM") code = "KIMIA";
+            // Konversi ke kode standar DB_Mapel via MAPEL_ALIAS
+            let code = MAPEL_ALIAS[rawCode] || rawCode;
             
-            // Jika kode mapel sudah ada, abaikan atau timpa entri yang kosong
             if (!mapelMap.has(code)) {
                 mapelMap.set(code, nItem);
             } else {
-                // Jika entri sebelumnya kosong tapi entri baru terisi, gunakan entri baru
+                // Jika entri sebelumnya kosong tapi entri baru terisi, utamakan entri yang ada nilainya
                 const existing = mapelMap.get(code);
                 const isExistingEmpty = !existing[5] && !existing[6] && !existing[7] && !existing[8];
                 if (isExistingEmpty) {
@@ -1654,8 +1663,10 @@ function showToast(message, type = "info") {
         let rowsNilaiHtml = "";
         if (nilaiSiswaList.length > 0) {
             nilaiSiswaList.forEach((nItem, i) => {
-                let mapelCode = String(nItem[3] || "").trim().toUpperCase();
-                if (mapelCode === "KIM") mapelCode = "KIMIA";
+                let rawCode = String(nItem[3] || "").trim().toUpperCase();
+                
+                // Normalisasi kode mapel dan nama resmi
+                let mapelCode = MAPEL_ALIAS[rawCode] || rawCode;
                 const mapelName = MASTER_MAPEL_NAME[mapelCode] || mapelCode;
                 
                 const val1 = nItem[5] || "-";
