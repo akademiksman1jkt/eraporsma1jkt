@@ -912,11 +912,12 @@ function showToast(message, type = "info") {
     if (!elKelas) return;
     
     const kelasSelected = elKelas.value;
-    const tbody = document.getElementById("tableBodyWalas"); // ID tbody tabel walas Anda
+    const tbody = document.getElementById("tableBodyWalas");
     if (!tbody || !kelasSelected) return;
 
-    // Filter daftar siswa berdasarkan kelas dari masterData.leger
     const siswaFiltered = (masterData.leger || []).slice(1).filter(r => String(r[3]).trim() === kelasSelected);
+    const labelWalas = document.getElementById("labelJumlahWalas");
+    if (labelWalas) labelWalas.innerText = `${siswaFiltered.length} Siswa`;
 
     tbody.innerHTML = "";
 
@@ -931,23 +932,18 @@ function showToast(message, type = "info") {
             return rowNisn === nisn;
         });
 
-        // Ambil data sesuai posisi kolom Spreadsheet DB_Rapor_PTS
         let sakit = "0";
         let izin = "0";
         let alpha = "0";
-        let catatan = " ";
+        let catatan = "";
 
         if (existingExtra) {
             if (Array.isArray(existingExtra)) {
-                // Sesuai Spreadsheet DB_Rapor_PTS:
-                // [0] NISN | [1] NAMA | [2] KELAS | [3] WALI_KELAS | [4] SEMESTER 
-                // [5] SAKIT | [6] IZIN | [7] ALPA | [8] CATATAN_WALI_KELAS
                 sakit = existingExtra[5] !== undefined && existingExtra[5] !== "" ? existingExtra[5] : "0";
                 izin = existingExtra[6] !== undefined && existingExtra[6] !== "" ? existingExtra[6] : "0";
                 alpha = existingExtra[7] !== undefined && existingExtra[7] !== "" ? existingExtra[7] : "0";
                 catatan = existingExtra[8] !== undefined ? existingExtra[8] : "";
             } else {
-                // Jika dari format Object JavaScript
                 sakit = existingExtra.sakit !== undefined ? existingExtra.sakit : "0";
                 izin = existingExtra.izin !== undefined ? existingExtra.izin : "0";
                 alpha = existingExtra.alpha || existingExtra.alpa || "0";
@@ -955,22 +951,23 @@ function showToast(message, type = "info") {
             }
         }
 
+        // TAMBAHKAN row-walas, data-nisn, dan data-nama DI SINI
         tbody.innerHTML += `
-            <tr class="hover:bg-indigo-50/50 transition">
+            <tr class="row-walas hover:bg-indigo-50/50 transition" data-nisn="${nisn}" data-nama="${nama}">
                 <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
                 <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
                 <td class="p-3 font-extrabold text-slate-900 border-r-2 border-slate-200">${nama}</td>
                 <td class="p-3 text-center border-r-2 border-slate-200">
-                    <input type="number" min="0" id="sakit_${nisn}" value="${sakit}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                    <input type="number" min="0" id="sakit_${nisn}" value="${sakit}" class="input-sakit w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
                 </td>
                 <td class="p-3 text-center border-r-2 border-slate-200">
-                    <input type="number" min="0" id="izin_${nisn}" value="${izin}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                    <input type="number" min="0" id="izin_${nisn}" value="${izin}" class="input-izin w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
                 </td>
                 <td class="p-3 text-center border-r-2 border-slate-200">
-                    <input type="number" min="0" id="alpha_${nisn}" value="${alpha}" class="w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
+                    <input type="number" min="0" id="alpha_${nisn}" value="${alpha}" class="input-alpha w-16 p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none">
                 </td>
                 <td class="p-3 border-r-2 border-slate-200">
-                    <input type="text" id="catatan_${nisn}" value="${catatan}" placeholder="Tuliskan catatan motivasi/perkembangan..." class="w-full p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg font-medium text-xs outline-none">
+                    <input type="text" id="catatan_${nisn}" value="${catatan}" placeholder="Tuliskan catatan motivasi/perkembangan..." class="input-catatan w-full p-2 border-2 border-slate-300 focus:border-indigo-600 rounded-lg font-medium text-xs outline-none">
                 </td>
             </tr>
         `;
@@ -988,46 +985,53 @@ function showToast(message, type = "info") {
 
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
 
+    // Cari nama Walas resmi dari DB_Wali_Kelas berdasarkan kelas yang dipilih
+    let namaWalasResmi = currentUser ? currentUser.namaGuru : "Wali Kelas";
+    if (masterData.walasPlotting && masterData.walasPlotting.length > 1) {
+        const matchWalas = masterData.walasPlotting.slice(1).find(r => 
+            String(r[0] || "").trim().toUpperCase() === String(kelas).trim().toUpperCase()
+        );
+        if (matchWalas && matchWalas[1]) {
+            namaWalasResmi = String(matchWalas[1]).trim();
+        }
+    }
+
     let dataWalas = [];
     rows.forEach(r => {
         const nisn = r.dataset.nisn;
         const namaSiswa = r.dataset.nama;
 
-        const sakit = document.getElementById(`sakit_${nisn}`).value;
-        const izin = document.getElementById(`izin_${nisn}`).value;
-        const alpha = document.getElementById(`alpha_${nisn}`).value;
-        const catatan = document.getElementById(`catatan_${nisn}`).value;
+        const sakitEl = document.getElementById(`sakit_${nisn}`);
+        const izinEl = document.getElementById(`izin_${nisn}`);
+        const alphaEl = document.getElementById(`alpha_${nisn}`);
+        const catatanEl = document.getElementById(`catatan_${nisn}`);
 
-        dataWalas.push({
-            nisn: nisn,
-            namaSiswa: namaSiswa,
-            kelas: kelas,
-            walas: currentUser.namaGuru,
-            semester: semAktif,
-            sakit: sakit,
-            izin: izin,
-            alpha: alpha,
-            catatan: catatan
-        });
+        const sakit = sakitEl ? sakitEl.value : 0;
+        const izin = izinEl ? izinEl.value : 0;
+        const alpha = alphaEl ? alphaEl.value : 0;
+        const catatan = catatanEl ? catatanEl.value : "";
+
+        if (nisn) {
+            dataWalas.push({
+                nisn: nisn,
+                namaSiswa: namaSiswa,
+                kelas: kelas,
+                walas: namaWalasResmi,
+                semester: semAktif,
+                sakit: sakit,
+                izin: izin,
+                alpha: alpha,
+                catatan: catatan
+            });
+        }
     });
 
+    if (dataWalas.length === 0) {
+        showToast("Tidak ada data siswa untuk disimpan!", "warning");
+        return;
+    }
+
     showConfirmModal("Simpan Catatan Walas", `Apakah Anda yakin ingin menyimpan presensi & catatan seluruh ${dataWalas.length} siswa di kelas ini?`, async () => {
-        // Cari elemen tombol simpan walas (sesuaikan ID jika berbeda)
-        const btnSimpan = document.getElementById("btnSimpanWalasBatch") || event?.target;
-        const originalText = btnSimpan ? btnSimpan.innerHTML : "Simpan Catatan Walas";
-
-        // 1. UBAH TOMBOL MENJADI LOADING & DISABLE
-        if (btnSimpan) {
-            btnSimpan.disabled = true;
-            btnSimpan.innerHTML = `
-                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Memproses Penyimpanan...
-            `;
-        }
-
         showToast("Sedang menyimpan presensi & catatan wali kelas...", "info");
 
         const formData = new URLSearchParams();
@@ -1052,12 +1056,6 @@ function showToast(message, type = "info") {
         } catch(err) {
             console.error(err);
             showToast("Gagal menyimpan presensi & catatan walas! Periksa koneksi internet Anda.", "error");
-        } finally {
-            // 2. KEMBALIKAN TOMBOL KE TAMPILAN SEMULA
-            if (btnSimpan) {
-                btnSimpan.disabled = false;
-                btnSimpan.innerHTML = originalText;
-            }
         }
     });
 }
@@ -1108,6 +1106,15 @@ function showToast(message, type = "info") {
 
         function handleImportFileWalas(event) {
     const file = event.target.files[0];
+    const kelasSelect = document.getElementById("selectKelasWalas");
+    const kelasTarget = kelasSelect ? kelasSelect.value : "";
+
+    if (!kelasTarget) {
+        showToast("Silakan pilih Kelas Binaan Wali Kelas terlebih dahulu sebelum mengimpor!", "warning");
+        event.target.value = "";
+        return;
+    }
+
     if (!file) return;
 
     const reader = new FileReader();
@@ -1125,10 +1132,21 @@ function showToast(message, type = "info") {
                 return;
             }
 
+            const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+            
+            // Ambil nama walas resmi
+            let namaWalasResmi = currentUser ? currentUser.namaGuru : "Wali Kelas";
+            if (masterData.walasPlotting && masterData.walasPlotting.length > 1) {
+                const matchWalas = masterData.walasPlotting.slice(1).find(r => 
+                    String(r[0] || "").trim().toUpperCase() === String(kelasTarget).trim().toUpperCase()
+                );
+                if (matchWalas && matchWalas[1]) namaWalasResmi = String(matchWalas[1]).trim();
+            }
+
             let dataWalasImport = [];
             for (let i = 1; i < rows.length; i++) {
                 const cols = rows[i];
-                if (!cols || cols.length < 3) continue;
+                if (!cols || cols.length < 2) continue;
 
                 const rawNisn = String(cols[0] || "").trim();
                 const nisn = formatNISN(rawNisn);
@@ -1138,7 +1156,9 @@ function showToast(message, type = "info") {
                 dataWalasImport.push({
                     nisn: nisn,
                     namaSiswa: String(cols[1] || "").trim(),
-                    kelas: String(cols[2] || "").trim(),
+                    kelas: kelasTarget,
+                    walas: namaWalasResmi,
+                    semester: semAktif,
                     sakit: cols[3] !== undefined ? String(cols[3]).trim() : "0",
                     izin: cols[4] !== undefined ? String(cols[4]).trim() : "0",
                     alpha: cols[5] !== undefined ? String(cols[5]).trim() : "0",
@@ -1152,10 +1172,6 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
-                // 1. Simpan Pilihan Kelas Walas Sebelum Impor
-                const elKelasWalas = document.getElementById("selectKelasWalas");
-                const currentKelasWalas = elKelasWalas ? elKelasWalas.value : "";
-
                 showToast("Sedang mengimpor data presensi & catatan...", "info");
 
                 const formData = new URLSearchParams();
@@ -1168,28 +1184,21 @@ function showToast(message, type = "info") {
                         headers: { "Content-Type": "application/x-www-form-urlencoded" },
                         body: formData.toString()
                     });
-                } catch (err) {
-                    console.warn("CORS/Redirect warning dari Apps Script:", err);
-                } finally {
-                    // 2. Refetch Data Terbaru & Render Ulang
-                    try {
-                        await loadInitialData();
-
-                        // 3. Pindah kembali ke Tab Absensi & Catatan Walas secara tepat
-                        switchTab('inputWalasTab');
-
-                        // 4. Pulihkan Kelas yang Dipilih & Muat Ulang Tabel Walas
-                        const elKelasWalasUpdated = document.getElementById("selectKelasWalas");
-                        if (elKelasWalasUpdated && currentKelasWalas) {
-                            elKelasWalasUpdated.value = currentKelasWalas;
-                        }
-                        loadTableSiswaWalas();
-
-                    } catch (renderErr) {
-                        console.error("Gagal merender ulang:", renderErr);
+                    const json = await res.json();
+                    
+                    if (json && json.status === "success") {
+                        showToast("Berhasil mengimpor data walas!", "success");
+                    } else {
+                        showToast(json.message || "Berhasil mengimpor data walas!", "success");
                     }
-
+                } catch (err) {
+                    console.warn("Respon dari Apps Script:", err);
                     showToast("Berhasil mengimpor data walas!", "success");
+                } finally {
+                    await loadInitialData();
+                    switchTab('inputWalasTab');
+                    if (kelasSelect) kelasSelect.value = kelasTarget;
+                    loadTableSiswaWalas();
                 }
             });
 
