@@ -117,7 +117,7 @@
     "FIS": "Fisika",
     "MATLAN": "Matematika Lanjut",
     "BJPG": "Bahasa Jepang",
-    "PKWU": "PKWU",
+    "PKWU": "Prakarya dan Kewirausahaan",
     "SEJLNJT": "Sejarah Lanjut",
     "SOS": "Sosiologi",
     "EKO": "Ekonomi",
@@ -773,15 +773,15 @@ function showToast(message, type = "info") {
         }
 
         // BANJIRKAN KE DOM HANYA 1 KALI (Mencegah Lagging & Freeze)
-        selMapel.innerHTML = htmlMapel;
-        selKelasGuru.innerHTML = htmlKelasGuru;
-        selKelasWalas.innerHTML = htmlKelasWalas;
-        selKelasCetak.innerHTML = htmlKelasCetak;
+        if (selMapel) selMapel.innerHTML = htmlMapel;
+        if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
+        if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
+        if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
         if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasLeger;
 
     } catch (err) {
         console.error(err);
-        showToast("Gagal memuat data dari server!", "error");
+        showToast("Gagal memuat data dari server! Periksa koneksi internet Anda.", "error");
     }
 }
 
@@ -791,7 +791,10 @@ function showToast(message, type = "info") {
     const semester = document.getElementById("selectSemesterGuru") ? document.getElementById("selectSemesterGuru").value : "";
     const tbody = document.getElementById("tableBodyNilaiGuru");
 
-    if (!kelas || !mapel) return;
+    if (!kelas || !mapel) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Pilih Mata Pelajaran dan Kelas untuk memuat data.</td></tr>';
+        return;
+    }
 
     const DAFTAR_MAPEL_HEADER = [
         "AGM", "PCSL", "BIND", "MTK", "BING", "PJOK", "SEJ", "SB", 
@@ -803,25 +806,35 @@ function showToast(message, type = "info") {
     if (targetHeader.startsWith("AGM")) targetHeader = "AGM";
     const mapelIndex = DAFTAR_MAPEL_HEADER.indexOf(targetHeader);
 
-    // 1. Ekstrak tingkat kelas secara presisi (X, XI, atau XII)
+    // 1. Ekstrak tingkat kelas (X, XI, atau XII)
     const tingkatMatch = kelas.trim().match(/^(XII|XI|X)\b/i);
     const tingkatKelas = tingkatMatch ? tingkatMatch[1].toUpperCase() : kelas.split("-")[0].trim().toUpperCase();
     const isKelasX = tingkatKelas === "X";
 
-    // 2. Filter total siswa angkatan dengan pencocokan persis batas kata (word boundary)
+    // 2. Filter total siswa angkatan untuk Kuota Eligible 40%
     const totalSiswaAngkatan = masterData.leger.slice(1).filter(r => {
         const kelasRow = String(r[3] || "").trim();
         const rowMatch = kelasRow.match(/^(XII|XI|X)\b/i);
         return rowMatch && rowMatch[1].toUpperCase() === tingkatKelas;
     }).length;
 
-    // 3. Hitung Kuota Eligible 40% berdasarkan angkatan presisi
     const kuotaEligible40Pct = Math.floor(totalSiswaAngkatan * 0.40);
-
     const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    
     document.getElementById("labelJumlahSiswa").innerText = `${siswaFiltered.length} Siswa`;
 
-    tbody.innerHTML = "";
+    if (siswaFiltered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Data siswa tidak ditemukan di kelas ini.</td></tr>';
+        return;
+    }
+
+    const targetMapel = String(mapel).trim().toUpperCase();
+    const targetSemester = String(semester).trim();
+
+    // Penampung HTML String di Memori (Mencegah Lagging/Reflow)
+    let tbodyHTML = "";
+    const listNisnKalkulasi = [];
+
     siswaFiltered.forEach((s, idx) => {
         const rawNisn = s[0];
         const nisn = String(rawNisn || "").replace(/^'/, "").trim().padStart(10, "0");
@@ -850,9 +863,6 @@ function showToast(message, type = "info") {
             }
         }
 
-        const targetMapel = String(mapel).trim().toUpperCase();
-        const targetSemester = String(semester).trim();
-
         const existing = (masterData.inputNilai || []).find(r => {
             const rowNisn = String(r[0] || "").replace(/^'/, "").trim().padStart(10, "0");
             const rowMapel = String(r[3] || "").trim().toUpperCase();
@@ -870,8 +880,9 @@ function showToast(message, type = "info") {
         const n3 = existing ? existing[7] : "";
         const n4 = existing ? existing[8] : "";
         const nRata = existing ? existing[9] : "-";
+        const valHistoriNum = nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0;
 
-        tbody.innerHTML += `
+        tbodyHTML += `
             <tr class="hover:bg-indigo-50/50 transition row-siswa" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
                 <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
                 <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
@@ -881,18 +892,24 @@ function showToast(message, type = "info") {
                     ${badgeEligible}
                 </td>
                 <td class="p-3 text-center font-black bg-amber-50 text-amber-950 border-r-2 border-slate-200">${nilaiHistoriTerakhir}</td>
-                <td class="p-3 text-center border-r-2 border-slate-200 col-n1"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                <td class="p-3 text-center border-r-2 border-slate-200 col-n2"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                <td class="p-3 text-center border-r-2 border-slate-200 col-n3"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
-                <td class="p-3 text-center border-r-2 border-slate-200 col-n4"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n1"><input type="number" id="n1_${nisn}" value="${n1}" oninput="hitungRataAuto('${nisn}', ${valHistoriNum})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n2"><input type="number" id="n2_${nisn}" value="${n2}" oninput="hitungRataAuto('${nisn}', ${valHistoriNum})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n3"><input type="number" id="n3_${nisn}" value="${n3}" oninput="hitungRataAuto('${nisn}', ${valHistoriNum})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
+                <td class="p-3 text-center border-r-2 border-slate-200 col-n4"><input type="number" id="n4_${nisn}" value="${n4}" oninput="hitungRataAuto('${nisn}', ${valHistoriNum})" class="w-16 p-2 border-2 border-slate-400 focus:border-indigo-600 rounded-lg text-center font-extrabold text-sm outline-none"></td>
                 <td class="p-3 text-center font-black text-indigo-900 border-r-2 border-slate-200 text-base" id="rata_${nisn}">${nRata}</td>
                 <td class="p-3 text-center font-extrabold" id="labelTren_${nisn}"><span class="text-slate-400">-</span></td>
             </tr>
         `;
 
-        setTimeout(() => {
-            hitungRataAuto(nisn, nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0);
-        }, 0);
+        listNisnKalkulasi.push({ nisn, valHistoriNum });
+    });
+
+    // 3. Injeksi ke DOM sekaligus 1 KALI
+    tbody.innerHTML = tbodyHTML;
+
+    // 4. Jalankan hitung rata-rata & tren secara efisien
+    listNisnKalkulasi.forEach(item => {
+        hitungRataAuto(item.nisn, item.valHistoriNum);
     });
 }
 
@@ -902,13 +919,24 @@ function showToast(message, type = "info") {
     
     const kelasSelected = elKelas.value;
     const tbody = document.getElementById("tableBodyWalas");
-    if (!tbody || !kelasSelected) return;
+    if (!tbody) return;
+
+    if (!kelasSelected) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Pilih Kelas Binaan untuk memuat daftar siswa.</td></tr>';
+        return;
+    }
 
     const siswaFiltered = (masterData.leger || []).slice(1).filter(r => String(r[3]).trim() === kelasSelected);
     const labelWalas = document.getElementById("labelJumlahWalas");
     if (labelWalas) labelWalas.innerText = `${siswaFiltered.length} Siswa`;
 
-    tbody.innerHTML = "";
+    if (siswaFiltered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-slate-500 font-semibold border-2 border-slate-300">Tidak ada data siswa ditemukan untuk kelas ini.</td></tr>';
+        return;
+    }
+
+    // Penampung HTML String di Memori (Mencegah Lagging/Reflow)
+    let tbodyHTML = "";
 
     siswaFiltered.forEach((s, idx) => {
         const rawNisn = s[0];
@@ -940,8 +968,7 @@ function showToast(message, type = "info") {
             }
         }
 
-        // TAMBAHKAN row-walas, data-nisn, dan data-nama DI SINI
-        tbody.innerHTML += `
+        tbodyHTML += `
             <tr class="row-walas hover:bg-indigo-50/50 transition" data-nisn="${nisn}" data-nama="${nama}">
                 <td class="p-3 text-center font-bold text-slate-500 border-r-2 border-slate-200">${idx + 1}</td>
                 <td class="p-3 font-mono font-bold text-xs border-r-2 border-slate-200">${nisn}</td>
@@ -961,10 +988,14 @@ function showToast(message, type = "info") {
             </tr>
         `;
     });
+
+    // Injeksi sekaligus 1 KALI ke DOM
+    tbody.innerHTML = tbodyHTML;
 }
 
         async function simpanSemuaCatatanWalasBatch() {
-    const kelas = document.getElementById("selectKelasWalas").value;
+    const elKelas = document.getElementById("selectKelasWalas");
+    const kelas = elKelas ? elKelas.value : "";
     const rows = document.querySelectorAll(".row-walas");
 
     if (!kelas || rows.length === 0) {
@@ -1021,7 +1052,28 @@ function showToast(message, type = "info") {
     }
 
     showConfirmModal("Simpan Catatan Walas", `Apakah Anda yakin ingin menyimpan presensi & catatan seluruh ${dataWalas.length} siswa di kelas ini?`, async () => {
+        // 1. TAMPILKAN FULLSCREEN LOADING OVERLAY (DITAMBAHKAN)
+        showLoadingOverlay("Menyimpan Catatan Walas...", "Sedang menyinkronkan data presensi & catatan ke database.");
+
+        // Ambil elemen tombol simpan untuk UI Loading & Disable State
+        const btnSimpan = document.getElementById("btnSimpanWalasBatch") || (typeof event !== 'undefined' ? event?.target : null);
+        const originalText = btnSimpan ? btnSimpan.innerHTML : "Simpan Semua Catatan";
+
+        if (btnSimpan) {
+            btnSimpan.disabled = true;
+            btnSimpan.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Menyimpan Data...
+            `;
+        }
+
         showToast("Sedang menyimpan presensi & catatan wali kelas...", "info");
+
+        // Simpan state pilihan kelas saat ini
+        const currentKelasWalas = elKelas ? elKelas.value : "";
 
         const formData = new URLSearchParams();
         formData.append("action", "simpanCatatanWalasBatch");
@@ -1039,12 +1091,27 @@ function showToast(message, type = "info") {
                 showToast(json.message || "Gagal menyimpan presensi & catatan walas!", "error");
             } else {
                 showToast(json.message || "Presensi & Catatan Walas berhasil disimpan!", "success");
+                
+                // Refresh data dari server
                 await loadInitialData();
+
+                // Pulihkan pilihan kelas walas agar tabel tidak kosong/ter-reset
+                if (elKelas && currentKelasWalas) {
+                    elKelas.value = currentKelasWalas;
+                }
                 loadTableSiswaWalas();
             }
         } catch(err) {
             console.error(err);
             showToast("Gagal menyimpan presensi & catatan walas! Periksa koneksi internet Anda.", "error");
+        } finally {
+            // Restore Tampilan Tombol
+            if (btnSimpan) {
+                btnSimpan.disabled = false;
+                btnSimpan.innerHTML = originalText;
+            }
+            // 2. SEMBUNYIKAN FULLSCREEN LOADING OVERLAY (DITAMBAHKAN)
+            hideLoadingOverlay();
         }
     });
 }
@@ -1161,6 +1228,9 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Presensi & Catatan Walas", `Apakah Anda yakin ingin mengimpor data ${dataWalasImport.length} siswa?`, async () => {
+                // 1. FULLSCREEN LOADING OVERLAY DAKHVA (ADD KELA)
+                showLoadingOverlay("Mengimpor Data Walas...", "Sedang mengunggah catatan dan presensi siswa ke database.");
+
                 showToast("Sedang mengimpor data presensi & catatan...", "info");
 
                 const formData = new URLSearchParams();
@@ -1188,6 +1258,9 @@ function showToast(message, type = "info") {
                     switchTab('inputWalasTab');
                     if (kelasSelect) kelasSelect.value = kelasTarget;
                     loadTableSiswaWalas();
+                    
+                    // 2. FULLSCREEN LOADING OVERLAY BAND KARA (ADD KELA)
+                    hideLoadingOverlay();
                 }
             });
 
@@ -1265,10 +1338,12 @@ function showToast(message, type = "info") {
     });
 
     showConfirmModal("Simpan Nilai Kelas", `Apakah Anda yakin ingin menyimpan nilai seluruh ${dataNilai.length} siswa di kelas ini?`, async () => {
-        const btnSimpan = document.getElementById("btnSimpanBatch") || event?.target;
+        const btnSimpan = document.getElementById("btnSimpanBatch") || (typeof event !== 'undefined' ? event?.target : null);
         const originalText = btnSimpan ? btnSimpan.innerHTML : "Simpan Semua Nilai";
 
-        // 1. Tampilkan Indikator Loading pada Tombol
+        // 1. TAMPILKAN FULLSCREEN LOADING OVERLAY (DITAMBAHKAN)
+        showLoadingOverlay("Menyimpan Nilai Siswa...", "Sedang mengirim data ke server, mohon tidak menutup halaman.");
+
         if (btnSimpan) {
             btnSimpan.disabled = true;
             btnSimpan.innerHTML = `
@@ -1282,7 +1357,6 @@ function showToast(message, type = "info") {
 
         showToast("Sedang menyimpan nilai ke database...", "info");
 
-        // Simpan state pilihan mapel & kelas saat ini
         const currentMapel = document.getElementById("selectMapelGuru").value;
         const currentKelas = document.getElementById("selectKelasGuru").value;
 
@@ -1303,16 +1377,13 @@ function showToast(message, type = "info") {
             } else {
                 showToast(json.message || "Nilai berhasil disimpan!", "success");
                 
-                // 2. Refresh data master dari server
                 await loadInitialData();
 
-                // 3. Set nilai mapel lalu panggil trigger refresh kelas khusus guru
                 if (currentMapel) {
                     document.getElementById("selectMapelGuru").value = currentMapel;
-                    onMapelGuruChanged(); // <--- TRIGER SINKRONISASI DROPDOWN KELAS GURU
+                    onMapelGuruChanged();
                 }
 
-                // 4. Set kelas kembali dan render ulang tabel siswa
                 if (currentKelas) {
                     document.getElementById("selectKelasGuru").value = currentKelas;
                     loadDaftarSiswaGuru();
@@ -1322,11 +1393,12 @@ function showToast(message, type = "info") {
             console.error(err);
             showToast("Gagal menyimpan nilai! Periksa koneksi internet Anda.", "error");
         } finally {
-            // Restore Tampilan Tombol
             if (btnSimpan) {
                 btnSimpan.disabled = false;
                 btnSimpan.innerHTML = originalText;
             }
+            // 2. SEMBUNYIKAN FULLSCREEN LOADING OVERLAY (DITAMBAHKAN)
+            hideLoadingOverlay();
         }
     });
 }
@@ -1480,7 +1552,9 @@ function showToast(message, type = "info") {
             }
 
             showConfirmModal("Import Nilai Excel", `Apakah Anda yakin ingin mengimpor ${dataImport.length} data nilai siswa?`, async () => {
-                // 1. Simpan pilihan Kelas, Mapel, dan Semester saat ini
+                // 1. TAMPILKAN OVERLAY LOADING (DITAMBAHKAN)
+                showLoadingOverlay("Mengimpor Nilai Excel...", "Sedang memproses dan menyimpan data nilai ke database.");
+
                 const elKelas = document.getElementById("selectKelasGuru");
                 const elMapel = document.getElementById("selectMapelGuru");
                 const elSemester = document.getElementById("selectSemesterGuru");
@@ -1506,20 +1580,16 @@ function showToast(message, type = "info") {
                     if (json.status === "success") {
                         showToast(json.message || "Berhasil mengimpor data nilai!", "success");
                         
-                        // 2. Refresh data master dari server
                         await loadInitialData();
 
-                        // 3. Set nilai mapel lalu panggil trigger refresh kelas khusus guru
                         if (elMapel && currentMapel) {
                             elMapel.value = currentMapel;
-                            onMapelGuruChanged(); // <--- TRIGER SINKRONISASI DROPDOWN KELAS GURU
+                            onMapelGuruChanged();
                         }
 
-                        // 4. Set kelas & semester kembali
                         if (elKelas && currentKelas) elKelas.value = currentKelas;
                         if (elSemester && currentSemester) elSemester.value = currentSemester;
 
-                        // 5. Render ulang tabel siswa dengan data terbaru
                         loadDaftarSiswaGuru();
                     } else {
                         showToast(json.message || "Gagal mengimpor data nilai!", "error");
@@ -1528,6 +1598,9 @@ function showToast(message, type = "info") {
                 } catch (err) {
                     console.error(err);
                     showToast("Gagal mengimpor data nilai!", "error");
+                } finally {
+                    // 2. SEMBUNYIKAN OVERLAY LOADING (DITAMBAHKAN)
+                    hideLoadingOverlay();
                 }
             });
 
@@ -1552,17 +1625,33 @@ function showToast(message, type = "info") {
         }
 
         function loadOptionSiswaCetak() {
-            const kelas = document.getElementById("selectKelasCetak").value;
-            const selSiswa = document.getElementById("selectSiswaCetak");
-            selSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+    const elKelas = document.getElementById("selectKelasCetak");
+    const selSiswa = document.getElementById("selectSiswaCetak");
+    
+    if (!selSiswa) return;
 
-            if (!kelas) return;
+    const kelas = elKelas ? elKelas.value : "";
 
-            const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
-            siswaFiltered.forEach(s => {
-                selSiswa.innerHTML += `<option value="${s[0]}">${s[2]} (${s[0]})</option>`;
-            });
-        }
+    if (!kelas) {
+        selSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>';
+        return;
+    }
+
+    // Filter siswa berdasarkan kelas dari masterData.leger
+    const siswaFiltered = (masterData.leger || []).slice(1).filter(r => String(r[3]).trim() === kelas);
+
+    // Penampung HTML String di Memori (Batch Rendering 1-Time)
+    let optionsHTML = '<option value="">-- Pilih Siswa --</option>';
+
+    siswaFiltered.forEach(s => {
+        const nisn = String(s[0] || "").replace(/^'/, "").trim();
+        const nama = s[2] || "";
+        optionsHTML += `<option value="${nisn}">${nama} (${nisn})</option>`;
+    });
+
+    // Injeksi sekaligus 1 KALI ke DOM
+    selSiswa.innerHTML = optionsHTML;
+}
 
         function previewRaporPTS() {
     const mode = document.getElementById("selectModeCetak").value;
@@ -2050,16 +2139,16 @@ function formatNilai(val) {
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
     // Hitung Kolom Paling Kanan
-    const totalColumns = 4 + (activeMapelCodes.length * 5); // Total indeks kolom akhir
+    const totalColumns = 4 + (activeMapelCodes.length * 5);
 
-    // 6. Config Merges (Termasuk Merge Judul Baris 1 & 2 Agar Tidak Terpotong)
+    // 6. Config Merges
     let merges = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: totalColumns } }, // MERGE JUDUL BARIS 1
-        { s: { r: 1, c: 0 }, e: { r: 1, c: totalColumns } }, // MERGE KELAS BARIS 2
-        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // NO
-        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // NISN
-        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // NAMA SISWA
-        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }  // KELAS
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalColumns } },
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalColumns } },
+        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
+        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } },
+        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } },
+        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }
     ];
 
     let colOffset = 4;
@@ -2071,7 +2160,9 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Style Definitions
+    // 7. Palette Warna Soft Pastel & Style Definitions
+    const softMapelFills = ["F2F5FB", "F0FDF4", "FFFBEB", "FAF5FF"];
+
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
@@ -2079,7 +2170,7 @@ function formatNilai(val) {
 
     const styleHeader = {
         font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "D9E1F2" } }, // Biru Soft
+        fill: { fgColor: { rgb: "D9E1F2" } },
         alignment: { horizontal: "center", vertical: "center", wrapText: true },
         border: {
             top: { style: "thin", color: { rgb: "000000" } },
@@ -2089,33 +2180,9 @@ function formatNilai(val) {
         }
     };
 
-    const styleDataCenter = {
-        font: { name: "Calibri", sz: 8.5 },
-        alignment: { horizontal: "center", vertical: "center" },
-        border: {
-            top: { style: "thin", color: { rgb: "D3D3D3" } },
-            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-            left: { style: "thin", color: { rgb: "D3D3D3" } },
-            right: { style: "thin", color: { rgb: "D3D3D3" } }
-        }
-    };
-
     const styleDataLeft = {
-        font: { name: "Calibri", sz: 8.5 },
+        font: { name: "Calibri", sz: 9.5 },
         alignment: { horizontal: "left", vertical: "center" },
-        border: {
-            top: { style: "thin", color: { rgb: "D3D3D3" } },
-            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-            left: { style: "thin", color: { rgb: "D3D3D3" } },
-            right: { style: "thin", color: { rgb: "D3D3D3" } }
-        }
-    };
-
-    // Style Nilai < 75: Text Merah Bold + Background Merah Transparan/Soft (#FCE4D6)
-    const styleDataUnderKKM = {
-        font: { name: "Calibri", sz: 8.5, color: { rgb: "C00000" }, bold: true },
-        fill: { fgColor: { rgb: "FCE4D6" } }, // Warna Merah Transparan/Soft
-        alignment: { horizontal: "center", vertical: "center" },
         border: {
             top: { style: "thin", color: { rgb: "D3D3D3" } },
             bottom: { style: "thin", color: { rgb: "D3D3D3" } },
@@ -2137,14 +2204,48 @@ function formatNilai(val) {
                 ws[cellAddr].s = styleHeader;
             } else if (R >= 5) {
                 const val = ws[cellAddr].v;
-                
-                // Pengecekan Nilai < 75 (Hanya pada kolom nilai / C >= 4)
-                if (C >= 4 && typeof val === 'number' && val < 75) {
-                    ws[cellAddr].s = styleDataUnderKKM;
-                } else if (C === 2) {
+
+                if (C === 2) {
                     ws[cellAddr].s = styleDataLeft;
+                } else if (C < 4 || C === totalColumns) {
+                    // Identitas umum (NO, NISN, KELAS, RATA-RATA KESELURUHAN)
+                    ws[cellAddr].s = {
+                        font: { name: "Calibri", sz: 10, bold: C === totalColumns },
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: {
+                            top: { style: "thin", color: { rgb: "D3D3D3" } },
+                            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+                            left: { style: "thin", color: { rgb: "D3D3D3" } },
+                            right: { style: "thin", color: { rgb: "D3D3D3" } }
+                        }
+                    };
                 } else {
-                    ws[cellAddr].s = styleDataCenter;
+                    // AREA HANYA KOLOM NILAI MAPEL
+                    const mapelIdx = Math.floor((C - 4) / 5);
+                    const isLastSubCol = ((C - 4) % 5) === 4; // Sub-kolom terakhir (ASH)
+                    const bgSoftColor = softMapelFills[mapelIdx % softMapelFills.length];
+
+                    const isUnderKKM = typeof val === 'number' && val < 75;
+
+                    ws[cellAddr].s = {
+                        font: { 
+                            name: "Calibri", 
+                            sz: 11, // UKURAN FONT NILAI DIPERBESAR (11)
+                            bold: isUnderKKM || isLastSubCol,
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" }
+                        },
+                        fill: { fgColor: { rgb: isUnderKKM ? "FCE4D6" : bgSoftColor } }, // WARNA SOFT PER MAPEL
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: {
+                            top: { style: "thin", color: { rgb: "E2E8F0" } },
+                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+                            left: { style: "thin", color: { rgb: "E2E8F0" } },
+                            // GARIS TEGAS PEMISAH ANTAR MAPEL (MEDIUM BORDER)
+                            right: isLastSubCol 
+                                ? { style: "medium", color: { rgb: "000000" } } 
+                                : { style: "thin", color: { rgb: "E2E8F0" } }
+                        }
+                    };
                 }
 
                 if (C === 1) {
@@ -2155,7 +2256,7 @@ function formatNilai(val) {
         }
     }
 
-    // 8. Pengaturan Lebar Kolom Ringkas
+    // 8. Pengaturan Lebar Kolom
     const colWidths = [
         { wch: 4.5 }, // NO
         { wch: 12.5 },// NISN
@@ -2214,11 +2315,13 @@ function formatNilai(val) {
     let optionsHTML = '<option value="">-- Pilih Kelas --</option>';
 
     if (currentUser && String(currentUser.role).toLowerCase() === "admin") {
-        const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
+        // Penambahan pengecekan array legernya aman dari undefined
+        const legerData = (masterData && Array.isArray(masterData.leger)) ? masterData.leger.slice(1) : [];
+        const allKelasList = [...new Set(legerData.map(r => r[3]))].filter(Boolean);
         allKelasList.forEach(k => { optionsHTML += `<option value="${k}">${k}</option>`; });
     } else {
-        const curUser = String(currentUser.username || "").trim().toLowerCase();
-        const matchedRows = (masterData.guru || []).filter(r => {
+        const curUser = String(currentUser ? currentUser.username : "").trim().toLowerCase();
+        const matchedRows = (masterData && Array.isArray(masterData.guru) ? masterData.guru : []).filter(r => {
             return String(r[0] || "").trim().toLowerCase() === curUser && 
                    String(r[3] || "").trim().toUpperCase() === mapelSelected.toUpperCase();
         });
@@ -2232,9 +2335,30 @@ function formatNilai(val) {
         kelasSet.forEach(k => { if (k) optionsHTML += `<option value="${k}">${k}</option>`; });
     }
 
-    // Terapkan sekaligus
+    // Terapkan sekaligus ke DOM
     selKelas.innerHTML = optionsHTML;
     loadDaftarSiswaGuru();
+}
+        function showLoadingOverlay(title = "Menyimpan Data...", subtext = "Mohon tunggu, sedang menyinkronkan ke database.") {
+    const overlay = document.getElementById("loadingOverlay");
+    const elTitle = document.getElementById("loadingTitle");
+    const elSubtext = document.getElementById("loadingSubtext");
+
+    if (elTitle) elTitle.innerText = title;
+    if (elSubtext) elSubtext.innerText = subtext;
+
+    if (overlay) {
+        overlay.classList.remove("hidden");
+        overlay.classList.add("flex");
+    }
+}
+
+function hideLoadingOverlay() {
+    const overlay = document.getElementById("loadingOverlay");
+    if (overlay) {
+        overlay.classList.add("hidden");
+        overlay.classList.remove("flex");
+    }
 }
     </script>
     <!-- Modal Loading Import (Tengah Layar) -->
@@ -2255,6 +2379,24 @@ function formatNilai(val) {
         <p class="text-xs font-semibold text-slate-500 mb-4" id="loadingDesc">Mohon tunggu, sedang menghubungkan ke server...</p>
 
         <!-- Progress Bar -->
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div class="bg-indigo-600 h-full rounded-full animate-pulse w-full"></div>
+        </div>
+    </div>
+</div>
+    <!-- FULLSCREEN LOADING OVERLAY & BLUR PROCESSOR -->
+<div id="loadingOverlay" class="fixed inset-0 z-[9999] hidden flex-col items-center justify-center bg-slate-900/60 backdrop-blur-sm transition-all duration-300">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full mx-4 border border-slate-100 text-center animate-fade-in">
+        <div class="relative w-20 h-20 mb-5">
+            <div class="absolute inset-0 rounded-full border-4 border-indigo-100"></div>
+            <div class="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin"></div>
+            <div class="absolute inset-2 rounded-full border-4 border-emerald-400 border-b-transparent animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-2xl"><i class="fa-solid fa-cloud-arrow-up text-indigo-600"></i></span>
+            </div>
+        </div>
+        <h3 class="text-lg font-black text-slate-800 mb-1" id="loadingTitle">Menyimpan Data...</h3>
+        <p class="text-xs font-semibold text-slate-500 mb-4" id="loadingSubtext">Mohon tunggu, sedang menyinkronkan ke database.</p>
         <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
             <div class="bg-indigo-600 h-full rounded-full animate-pulse w-full"></div>
         </div>
