@@ -1745,15 +1745,15 @@ nilaiSiswaList.sort((a, b) => {
                     if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
                         const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
                         if (diff > 0) {
-                            trenVal = `↗ +${diff}`;
-                            trenClass = "text-emerald-600 font-extrabold";
-                        } else if (diff < 0) {
-                            trenVal = `↘ ${diff}`;
-                            trenClass = "text-rose-600 font-extrabold";
-                        } else {
-                            trenVal = `→ 0.0`;
-                            trenClass = "text-slate-600 font-bold";
-                        }
+    trenVal = `<span class="flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> +${diff}</span>`;
+    trenClass = "text-emerald-600 font-extrabold";
+} else if (diff < 0) {
+    trenVal = `<span class="flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-down"></i> ${diff}</span>`;
+    trenClass = "text-rose-600 font-extrabold";
+} else {
+    trenVal = `<span class="flex items-center justify-center gap-1"><i class="fa-solid fa-minus"></i> 0.0</span>`;
+    trenClass = "text-slate-500 font-bold";
+}
                     } else {
                         for (let idx = 10; idx < nItem.length; idx++) {
                             const valStr = String(nItem[idx] || "").trim();
@@ -1847,24 +1847,29 @@ nilaiSiswaList.sort((a, b) => {
                 <div class="flex justify-between font-bold"><span>Alpa :</span> <span class="font-black">${alpha} hari</span></div>
             </div>
             <div class="col-span-2 bg-slate-50 border-2 border-slate-300 p-2.5 rounded-xl">
-                <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 mb-1 uppercase tracking-wider text-[9px]">Catatan Perkembangan Wali Kelas</h4>
-                <p class="italic text-slate-800 leading-snug font-semibold text-[11px]">"${catatan}"</p>
-            </div>
+    <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 mb-1 uppercase tracking-wider text-[9px]">Catatan Perkembangan Wali Kelas</h4>
+    <!-- Ukuran font diubah dari text-[11px] menjadi text-[13px] / text-sm -->
+    <p class="italic text-slate-800 leading-snug font-semibold text-[13px]">"${catatan}"</p>
+</div>
         </div>
 
         <!-- TANDA TANGAN -->
         <div class="pt-2 grid grid-cols-2 text-xs text-left font-bold">
-            <div>
+            <!-- Kolom Kiri: Orang Tua/Wali -->
+            <div class="pl-10 sm:pl-12">
                 <p>Mengetahui,</p>
                 <p>Orang Tua / Wali Siswa</p>
-                <div class="h-12"></div>
+                <!-- Jarak TTD diperluas dari h-12 ke h-20 -->
+                <div class="h-20"></div>
                 <p class="font-black text-slate-900">( .................................................... )</p>
             </div>
             
-            <div class="pl-28 sm:pl-32">
+            <!-- Kolom Kanan: Wali Kelas -->
+            <div class="pl-10 sm:pl-12">
                 <p>${tglRapor}</p>
                 <p>Wali Kelas,</p>
-                <div class="h-12"></div>
+                <!-- Jarak TTD diperluas dari h-12 ke h-20 -->
+                <div class="h-20"></div>
                 <p class="font-black text-indigo-950 underline">${namaWalasFinal}</p>
                 <p class="text-slate-600 font-mono">NIP ${nipWalasFinal}</p>
             </div>
