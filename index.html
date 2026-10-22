@@ -2138,17 +2138,15 @@ function formatNilai(val) {
     // 5. Buat Worksheet
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // Hitung Kolom Paling Kanan
+    // Hitung Total Kolom Paling Kanan
     const totalColumns = 4 + (activeMapelCodes.length * 5);
 
-    // 6. Config Merges
+    // 6. Config Merges (Baris Judul 0 dan 1 Tidak Di-merge Lagi)
     let merges = [
-        { s: { r: 0, c: 0 }, e: { r: 0, c: totalColumns } },
-        { s: { r: 1, c: 0 }, e: { r: 1, c: totalColumns } },
-        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } },
-        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } },
-        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } },
-        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }
+        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // NO
+        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // NISN
+        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // NAMA SISWA
+        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }  // KELAS
     ];
 
     let colOffset = 4;
@@ -2160,71 +2158,76 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Styling Mengikuti Contoh Gambar Acuan
+    // 7. Definisi Style
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
     };
 
-    // BORDER TEGAS HITAM TIPIS PADA SELURUH SISIH SEL
-    const borderTepiSetiapSel = {
+    const borderHitamSolid = {
         top: { style: "thin", color: { rgb: "000000" } },
         bottom: { style: "thin", color: { rgb: "000000" } },
         left: { style: "thin", color: { rgb: "000000" } },
         right: { style: "thin", color: { rgb: "000000" } }
     };
 
-    // DEKLARASI EKSPLISIT FILL AGAR TIDAK SALING TERTIMPA
     const fillBiruSoft = { patternType: "solid", fgColor: { rgb: "BDD7EE" } };
     const fillPutihPasti = { patternType: "solid", fgColor: { rgb: "FFFFFF" } };
 
+    // Apply Style ke Semua Sel
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
-            if (!ws[cellAddr]) ws[cellAddr] = { t: 's', v: '' };
 
+            // BARIS JUDUL (0 & 1): Hanya set di Kolom A (A1 & A2), hapus sel sebelahnya agar meluap
             if (R === 0 || R === 1) {
-                ws[cellAddr].s = styleTitle;
+                if (C === 0) {
+                    ws[cellAddr].s = styleTitle;
+                } else {
+                    delete ws[cellAddr]; // Hapus sel kosong agar teks A1 & A2 menembus kolom
+                }
             } else if (R === 3 || R === 4) {
-                // Header Tabel (NO, NISN, NAMA, KELAS, MAPEL, SUB-HEADER) -> Biru + Border Hitam
+                // Header Tabel
+                if (!ws[cellAddr]) ws[cellAddr] = { t: 's', v: '' };
                 ws[cellAddr].s = {
                     font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
                     fill: fillBiruSoft,
                     alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                    border: borderTepiSetiapSel
+                    border: borderHitamSolid
                 };
             } else if (R >= 5) {
+                if (!ws[cellAddr]) ws[cellAddr] = { t: 's', v: '' };
                 const rawVal = ws[cellAddr].v;
 
                 if (C === 2) {
-                    // Nama Siswa -> Rata Kiri, Latar Putih, Border Hitam
+                    // Nama Siswa
                     ws[cellAddr].s = {
                         font: { name: "Calibri", sz: 9.5 },
                         alignment: { horizontal: "left", vertical: "center" },
-                        border: borderTepiSetiapSel,
+                        border: borderHitamSolid,
                         fill: fillPutihPasti
                     };
                 } else if (C < 4) {
-                    // NO, NISN, KELAS -> Rata Tengah, Latar Putih, Border Hitam
+                    // NO, NISN, KELAS
                     ws[cellAddr].s = {
                         font: { name: "Calibri", sz: 10 },
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderTepiSetiapSel,
+                        border: borderHitamSolid,
                         fill: fillPutihPasti
                     };
                 } else if (C === totalColumns) {
-                    // RATA-RATA KESELURUHAN -> Rata Tengah, Bold, Latar Biru, Border Hitam
+                    // RATA-RATA KESELURUHAN
                     ws[cellAddr].s = {
                         font: { name: "Calibri", sz: 10, bold: true },
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderTepiSetiapSel,
+                        border: borderHitamSolid,
                         fill: fillBiruSoft
                     };
                 } else {
                     // AREA NILAI MAPEL
-                    const subColIdx = (C - 4) % 5;
-                    const isRataCol = subColIdx === 4; // Apakah ini sub-kolom RATA?
+                    const subColIndex = (C - 4) % 5;
+                    const isRataCol = (subColIndex === 4); // Sub-kolom RATA
                     
                     const numVal = parseFloat(rawVal);
                     const isUnderKKM = !isNaN(numVal) && numVal > 0 && numVal < 75;
@@ -2233,13 +2236,13 @@ function formatNilai(val) {
                         font: { 
                             name: "Calibri", 
                             sz: 11,
-                            bold: isUnderKKM || isRataCol, // Kolom RATA / nilai <75 dicetak Bold
-                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Nilai < 75 teks merah
+                            bold: isUnderKKM || isRataCol,
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" }
                         },
-                        // HANYA SUB-KOLOM RATA YANG BIRU, SUB-KOLOM LAIN DIPAKSA PUTIH (FFFFFF)
+                        // HANYA SUB-KOLOM RATA YANG BIRU, LAINNYA PUTIH POLOS
                         fill: isRataCol ? fillBiruSoft : fillPutihPasti,
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderTepiSetiapSel
+                        border: borderHitamSolid
                     };
                 }
 
