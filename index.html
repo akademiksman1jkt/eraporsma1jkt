@@ -1926,7 +1926,7 @@ function formatNilai(val) {
         return;
     }
 
-    // Filter siswa berdasarkan kelas
+    // 1. Filter Siswa Berdasarkan Kelas Target
     const siswaFiltered = masterData.leger.slice(1).filter(r => {
         const classVal = String(r[3] || r[2] || "").trim();
         return classVal.toUpperCase() === kelas.toUpperCase();
@@ -1943,18 +1943,43 @@ function formatNilai(val) {
     const l3 = (masterData.config && masterData.config.LABEL_COL3) || "Tugas 3";
     const l4 = (masterData.config && masterData.config.LABEL_COL4) || "ASTS";
 
-    const listMapelCodes = typeof MASTER_MAPEL_NAME !== "undefined" ? Object.keys(MASTER_MAPEL_NAME) : [];
+    const allMapelCodes = typeof MASTER_MAPEL_NAME !== "undefined" ? Object.keys(MASTER_MAPEL_NAME) : [];
+    const sanitizeNisn = (val) => String(val || "").replace(/^'/, "").trim().padStart(10, "0");
+    const inputNilaiData = masterData.inputNilai || [];
 
-    if (listMapelCodes.length === 0) {
-        showToast("Daftar mata pelajaran kosong!", "error");
+    // 2. DETEKSI & ELEMINASI MAPEL TANPA NILAI SAMA SEKALI DI KELAS INI
+    const activeMapelCodes = allMapelCodes.filter(code => {
+        // Cek apakah ada minimal satu siswa yang memiliki nilai pada mapel ini
+        return siswaFiltered.some(s => {
+            const rawNisn = String(s[0] || "").trim();
+            const nisn = sanitizeNisn(rawNisn);
+
+            const item = inputNilaiData.find(r => 
+                sanitizeNisn(r[0]) === nisn && 
+                String(r[3] || "").trim().toUpperCase() === String(code).trim().toUpperCase() && 
+                String(r[4] || "").trim() === semAktif
+            );
+
+            if (!item) return false;
+            // Mapel dianggap aktif jika ada salah satu kolom nilai (1-4 atau rata-rata) yang terisi
+            return (item[5] !== "" && item[5] !== undefined) || 
+                   (item[6] !== "" && item[6] !== undefined) || 
+                   (item[7] !== "" && item[7] !== undefined) || 
+                   (item[8] !== "" && item[8] !== undefined) ||
+                   (item[9] !== "" && item[9] !== undefined);
+        });
+    });
+
+    if (activeMapelCodes.length === 0) {
+        showToast("Belum ada data nilai yang terisi untuk seluruh mata pelajaran di kelas ini!", "warning");
         return;
     }
 
-    // 1. SUSUN HEADER 2 BARIS
+    // 3. SUSUN HEADER 2 BARIS HANYA UNTUK MAPEL AKTIF
     let headerRow1 = ["NO", "NISN", "NAMA SISWA", "KELAS"];
     let headerRow2 = ["", "", "", ""];
 
-    listMapelCodes.forEach(code => {
+    activeMapelCodes.forEach(code => {
         headerRow1.push(code, "", "", "", "");
         headerRow2.push(l1, l2, l3, l4, "ASH");
     });
@@ -1964,18 +1989,14 @@ function formatNilai(val) {
 
     let sheetData = [headerRow1, headerRow2];
 
-    const sanitizeNisn = (val) => String(val || "").replace(/^'/, "").trim().padStart(10, "0");
-    const inputNilaiData = masterData.inputNilai || [];
-
-    // 2. SUSUN DATA SISWA (PERBAIKAN: Ambil Nama Siswa Asli)
+    // 4. SUSUN DATA SISWA DENGAN MAPEL TERPILIH
     siswaFiltered.forEach((s, idx) => {
         const rawNisn = String(s[0] || "").trim();
         const nisn = sanitizeNisn(rawNisn);
         
-        // PERBAIKAN: Mengecek kolom Nama Siswa asli (Mencari teks string nama, bukan ID angka)
-        let nama = String(s[1] || "").trim();
-        if (!isNaN(nama) || !nama) {
-            nama = String(s[2] || s[3] || "").trim();
+        let nama = String(s[2] || "").trim();
+        if (!nama || !isNaN(nama)) {
+            nama = String(s[1] || s[3] || "").trim();
         }
 
         let row = [idx + 1, nisn, nama, kelas];
@@ -1983,7 +2004,7 @@ function formatNilai(val) {
         let totalRataMapelSiswa = 0;
         let jumlahMapelTerisi = 0;
 
-        listMapelCodes.forEach(code => {
+        activeMapelCodes.forEach(code => {
             const itemNilai = inputNilaiData.find(r => 
                 sanitizeNisn(r[0]) === nisn && 
                 String(r[3] || "").trim().toUpperCase() === String(code).trim().toUpperCase() && 
@@ -2016,10 +2037,10 @@ function formatNilai(val) {
         sheetData.push(row);
     });
 
-    // 3. BUAT WORKSHEET
+    // 5. BUAT WORKSHEET
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 4. MERGE CELLS
+    // 6. MERGE CELLS DARI MAPEL AKTIF
     let merges = [
         { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // NO
         { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // NISN
@@ -2028,7 +2049,7 @@ function formatNilai(val) {
     ];
 
     let colOffset = 4;
-    listMapelCodes.forEach(() => {
+    activeMapelCodes.forEach(() => {
         merges.push({ s: { r: 0, c: colOffset }, e: { r: 0, c: colOffset + 4 } });
         colOffset += 5;
     });
@@ -2036,85 +2057,30 @@ function formatNilai(val) {
     merges.push({ s: { r: 0, c: colOffset }, e: { r: 1, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 5. STYLING (BORDER, WARNA BIRU MUDA HEADER, FONT 10PT, ALIGNMENT)
-    const styleHeader = {
-        font: { name: "Arial", sz: 10, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "D9E1F2" } }, // Warna Biru Muda Soft
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: {
-            top: { style: "thin", color: { auto: 1 } },
-            bottom: { style: "thin", color: { auto: 1 } },
-            left: { style: "thin", color: { auto: 1 } },
-            right: { style: "thin", color: { auto: 1 } }
-        }
-    };
-
-    const styleData = {
-        font: { name: "Arial", sz: 10 },
-        alignment: { vertical: "center" },
-        border: {
-            top: { style: "thin", color: { auto: 1 } },
-            bottom: { style: "thin", color: { auto: 1 } },
-            left: { style: "thin", color: { auto: 1 } },
-            right: { style: "thin", color: { auto: 1 } }
-        }
-    };
-
-    const styleDataCenter = {
-        ...styleData,
-        alignment: { horizontal: "center", vertical: "center" }
-    };
-
-    // Terapkan Styling ke Seluruh Sel
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-            if (!ws[cellAddress]) ws[cellAddress] = { t: 's', v: '' };
-
-            // Baris Header (R = 0 dan R = 1)
-            if (R === 0 || R === 1) {
-                ws[cellRefAddress(ws, cellAddress)].s = styleHeader;
-            } else {
-                // Baris Data Siswa
-                if (C === 0 || C === 1 || C === 3 || C >= 4) {
-                    ws[cellRefAddress(ws, cellAddress)].s = styleDataCenter; // Kolom Angka/Siswa Rata Tengah
-                } else {
-                    ws[cellRefAddress(ws, cellAddress)].s = styleData; // Kolom Nama Rata Kiri
-                }
-
-                // Format Khusus Teks NISN (Kolom B)
-                if (C === 1) {
-                    ws[cellAddress].t = 's';
-                    ws[cellAddress].z = '@';
-                }
-            }
+    // 7. AMANKAN FORMAT NISN SEBAGAI TEKS STRING
+    for (let i = 3; i <= sheetData.length; i++) {
+        const cellRef = `B${i}`;
+        if (ws[cellRef]) {
+            ws[cellRef].t = 's';
+            ws[cellRef].z = '@';
         }
     }
 
-    // Helper aman untuk menyuntikkan properti `.s`
-    function cellRefAddress(worksheet, ref) {
-        if (!worksheet[ref]) worksheet[ref] = {};
-        return ref;
-    }
-
-    // 6. AUTOFIT LEBAR KOLOM (DENGAN PADDING AGAR LEGA)
-    const colWidths = headers.map((h, colIdx) => {
-        let maxLen = h.length;
-        sheetData.forEach(row => {
-            const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
-            if (val.length > maxLen) maxLen = val.length;
-        });
-        return { wch: Math.max(maxLen + 2, 7) }; // Otomatis pas sesuai konten terpanjang
+    // 8. AUTOFIT LEBAR KOLOM DINAMIS
+    const colWidths = [{ wch: 4 }, { wch: 13 }, { wch: 28 }, { wch: 7 }];
+    activeMapelCodes.forEach(() => {
+        colWidths.push({ wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 8 });
     });
+    colWidths.push({ wch: 20 });
     ws['!cols'] = colWidths;
 
-    // 7. DOWNLOAD EXCEL
+    // 9. GENERATE & DOWNLOAD EXCEL
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}`);
-    XLSX.writeFile(wb, `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.xlsx`);
 
-    showToast(`Leger Nilai Excel (.xlsx) Kelas ${kelas} berhasil diunduh!`, "success");
+    XLSX.writeFile(wb, `Leger_Nilai_${kelas}_Sem${semAktif}.xlsx`);
+
+    showToast(`Leger Nilai Kelas ${kelas} berhasil diunduh (${activeMapelCodes.length} mapel aktif)!`, "success");
 }
         function formatNISN(nisn) {
     let clean = String(nisn || "").trim();
