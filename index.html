@@ -2079,7 +2079,7 @@ function formatNilai(val) {
 
     activeMapelCodes.forEach(code => {
         headerRow1.push(code, "", "", "", "");
-        headerRow2.push(l1, l2, l3, l4, "ASH");
+        headerRow2.push(l1, l2, l3, l4, "RATA"); // DIBETULKAN: Mengubah "ASH" menjadi "RATA"
     });
 
     headerRow1.push("RATA-RATA KESELURUHAN");
@@ -2160,9 +2160,7 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Palette Warna Soft Pastel & Style Definitions
-    const softMapelFills = ["F2F5FB", "F0FDF4", "FFFBEB", "FAF5FF"];
-
+    // 7. Style Definitions
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
@@ -2170,7 +2168,7 @@ function formatNilai(val) {
 
     const styleHeader = {
         font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "D9E1F2" } },
+        fill: { fgColor: { rgb: "D9E1F2" } }, // Biru Soft Header
         alignment: { horizontal: "center", vertical: "center", wrapText: true },
         border: {
             top: { style: "thin", color: { rgb: "000000" } },
@@ -2222,27 +2220,29 @@ function formatNilai(val) {
                 } else {
                     // AREA HANYA KOLOM NILAI MAPEL
                     const mapelIdx = Math.floor((C - 4) / 5);
-                    const isLastSubCol = ((C - 4) % 5) === 4; // Sub-kolom terakhir (ASH)
-                    const bgSoftColor = softMapelFills[mapelIdx % softMapelFills.length];
+                    const isLastSubCol = ((C - 4) % 5) === 4; // Sub-kolom terakhir (RATA)
+                    
+                    // SELANG-SELING: Mapel Genap = Biru Muda (F2F5FB), Mapel Ganjil = Putih / Tanpa Warna (FFFFFF)
+                    const bgSoftColor = (mapelIdx % 2 === 0) ? "F2F5FB" : "FFFFFF";
 
                     const isUnderKKM = typeof val === 'number' && val < 75;
 
                     ws[cellAddr].s = {
                         font: { 
                             name: "Calibri", 
-                            sz: 11, // UKURAN FONT NILAI DIPERBESAR (11)
+                            sz: 11, // Ukuran font nilai tetap jelas
                             bold: isUnderKKM || isLastSubCol,
                             color: { rgb: isUnderKKM ? "C00000" : "000000" }
                         },
-                        fill: { fgColor: { rgb: isUnderKKM ? "FCE4D6" : bgSoftColor } }, // WARNA SOFT PER MAPEL
+                        fill: { fgColor: { rgb: isUnderKKM ? "FCE4D6" : bgSoftColor } }, 
                         alignment: { horizontal: "center", vertical: "center" },
                         border: {
                             top: { style: "thin", color: { rgb: "E2E8F0" } },
                             bottom: { style: "thin", color: { rgb: "E2E8F0" } },
                             left: { style: "thin", color: { rgb: "E2E8F0" } },
-                            // GARIS TEGAS PEMISAH ANTAR MAPEL (MEDIUM BORDER)
+                            // GARIS PEMISAH ANTAR MAPEL (Thin Hitam Sama Seperti Header)
                             right: isLastSubCol 
-                                ? { style: "medium", color: { rgb: "000000" } } 
+                                ? { style: "thin", color: { rgb: "000000" } } 
                                 : { style: "thin", color: { rgb: "E2E8F0" } }
                         }
                     };
