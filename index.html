@@ -1854,21 +1854,21 @@ nilaiSiswaList.sort((a, b) => {
         </div>
 
         <!-- TANDA TANGAN -->
-        <div class="pt-2 grid grid-cols-2 text-xs text-left font-bold">
-            <!-- Kolom Kiri: Orang Tua/Wali -->
-            <div class="pl-10 sm:pl-12">
+        <div class="pt-2 grid grid-cols-2 text-xs font-bold">
+            <!-- Kolom Kiri: Orang Tua/Wali (Jarak dari tepi kiri) -->
+            <div class="pl-10 sm:pl-12 text-left">
                 <p>Mengetahui,</p>
                 <p>Orang Tua / Wali Siswa</p>
-                <!-- Jarak TTD diperluas dari h-12 ke h-20 -->
+                <!-- Space TTD lega (80px) -->
                 <div class="h-20"></div>
                 <p class="font-black text-slate-900">( .................................................... )</p>
             </div>
             
-            <!-- Kolom Kanan: Wali Kelas -->
-            <div class="pl-10 sm:pl-12">
+            <!-- Kolom Kanan: Wali Kelas (Geser lebih ke kanan agar setara dengan tepi kanan) -->
+            <div class="pr-10 sm:pr-12 text-left justify-self-end w-fit">
                 <p>${tglRapor}</p>
                 <p>Wali Kelas,</p>
-                <!-- Jarak TTD diperluas dari h-12 ke h-20 -->
+                <!-- Space TTD lega (80px) -->
                 <div class="h-20"></div>
                 <p class="font-black text-indigo-950 underline">${namaWalasFinal}</p>
                 <p class="text-slate-600 font-mono">NIP ${nipWalasFinal}</p>
