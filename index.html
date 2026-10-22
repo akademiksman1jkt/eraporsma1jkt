@@ -2160,34 +2160,24 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Defining Styles
+    // 7. Styling Mengikuti Contoh Gambar Acuan
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
     };
 
-    // GARIS TEPI HITAM SERAGAM UNTUK SELURUH TABEL
-    const borderTepiHitam = {
+    // BORDER TEGAS HITAM TIPIS PADA SELURUH SISIH SEL
+    const borderTepiSetiapSel = {
         top: { style: "thin", color: { rgb: "000000" } },
         bottom: { style: "thin", color: { rgb: "000000" } },
         left: { style: "thin", color: { rgb: "000000" } },
         right: { style: "thin", color: { rgb: "000000" } }
     };
 
-    const styleHeader = {
-        font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "BDD7EE" } }, // Biru soft header sesuai gambar
-        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: borderTepiHitam
-    };
+    // DEKLARASI EKSPLISIT FILL AGAR TIDAK SALING TERTIMPA
+    const fillBiruSoft = { patternType: "solid", fgColor: { rgb: "BDD7EE" } };
+    const fillPutihPasti = { patternType: "solid", fgColor: { rgb: "FFFFFF" } };
 
-    const styleDataLeft = {
-        font: { name: "Calibri", sz: 9.5 },
-        alignment: { horizontal: "left", vertical: "center" },
-        border: borderTepiHitam
-    };
-
-    // Apply Style ke Semua Sel
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -2197,25 +2187,45 @@ function formatNilai(val) {
             if (R === 0 || R === 1) {
                 ws[cellAddr].s = styleTitle;
             } else if (R === 3 || R === 4) {
-                ws[cellAddr].s = styleHeader;
+                // Header Tabel (NO, NISN, NAMA, KELAS, MAPEL, SUB-HEADER) -> Biru + Border Hitam
+                ws[cellAddr].s = {
+                    font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
+                    fill: fillBiruSoft,
+                    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                    border: borderTepiSetiapSel
+                };
             } else if (R >= 5) {
                 const rawVal = ws[cellAddr].v;
 
                 if (C === 2) {
-                    ws[cellAddr].s = styleDataLeft;
-                } else if (C < 4 || C === totalColumns) {
-                    // Identitas umum (NO, NISN, KELAS, RATA-RATA KESELURUHAN)
+                    // Nama Siswa -> Rata Kiri, Latar Putih, Border Hitam
                     ws[cellAddr].s = {
-                        font: { name: "Calibri", sz: 10, bold: C === totalColumns },
+                        font: { name: "Calibri", sz: 9.5 },
+                        alignment: { horizontal: "left", vertical: "center" },
+                        border: borderTepiSetiapSel,
+                        fill: fillPutihPasti
+                    };
+                } else if (C < 4) {
+                    // NO, NISN, KELAS -> Rata Tengah, Latar Putih, Border Hitam
+                    ws[cellAddr].s = {
+                        font: { name: "Calibri", sz: 10 },
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderTepiHitam,
-                        fill: (C === totalColumns) ? { fgColor: { rgb: "BDD7EE" } } : undefined
+                        border: borderTepiSetiapSel,
+                        fill: fillPutihPasti
+                    };
+                } else if (C === totalColumns) {
+                    // RATA-RATA KESELURUHAN -> Rata Tengah, Bold, Latar Biru, Border Hitam
+                    ws[cellAddr].s = {
+                        font: { name: "Calibri", sz: 10, bold: true },
+                        alignment: { horizontal: "center", vertical: "center" },
+                        border: borderTepiSetiapSel,
+                        fill: fillBiruSoft
                     };
                 } else {
-                    // AREA KOLOM NILAI MAPEL
-                    const isLastSubCol = ((C - 4) % 5) === 4; // Sub-kolom RATA
+                    // AREA NILAI MAPEL
+                    const subColIdx = (C - 4) % 5;
+                    const isRataCol = subColIdx === 4; // Apakah ini sub-kolom RATA?
                     
-                    // KONVERSI MURNI ANGKA UNTUK PENGECEKAN KKM
                     const numVal = parseFloat(rawVal);
                     const isUnderKKM = !isNaN(numVal) && numVal > 0 && numVal < 75;
 
@@ -2223,13 +2233,13 @@ function formatNilai(val) {
                         font: { 
                             name: "Calibri", 
                             sz: 11,
-                            bold: isUnderKKM || isLastSubCol, // Kolom RATA tebal (Bold)
-                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Angka merah jika < 75
+                            bold: isUnderKKM || isRataCol, // Kolom RATA / nilai <75 dicetak Bold
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Nilai < 75 teks merah
                         },
-                        // HANYA KOLOM RATA YANG DIBERI WARNA BIRU BD D7 EE
-                        fill: isLastSubCol ? { fgColor: { rgb: "BDD7EE" } } : { fgColor: { rgb: "FFFFFF" } },
+                        // HANYA SUB-KOLOM RATA YANG BIRU, SUB-KOLOM LAIN DIPAKSA PUTIH (FFFFFF)
+                        fill: isRataCol ? fillBiruSoft : fillPutihPasti,
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderTepiHitam // SEMUA SEL MENGGUNAKAN GARIS TEPI HITAM TEGAS
+                        border: borderTepiSetiapSel
                     };
                 }
 
