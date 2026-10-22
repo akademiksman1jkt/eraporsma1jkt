@@ -1913,66 +1913,88 @@ function formatNilai(val) {
             }
         }
         function eksporLegerNilaiKelas() {
-    const kelas = document.getElementById("selectKelasEksporLeger").value;
+    const kelasSelect = document.getElementById("selectKelasEksporLeger");
+    const kelas = kelasSelect ? kelasSelect.value : "";
+
     if (!kelas) {
         showToast("Silakan pilih kelas yang ingin diekspor terlebih dahulu!", "warning");
         return;
     }
 
-    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3] || "").trim() === kelas);
+    // Pastikan masterData.leger tersedia
+    if (!masterData || !masterData.leger || masterData.leger.length <= 1) {
+        showToast("Data leger/siswa belum dimuat!", "error");
+        return;
+    }
+
+    // Filter siswa berdasarkan kelas (Mencocokkan kolom Kelas)
+    const siswaFiltered = masterData.leger.slice(1).filter(r => {
+        // Cari nilai kelas di kolom yang tersedia (biasanya indeks 2 atau 3)
+        const classVal = String(r[3] || r[2] || "").trim();
+        return classVal.toUpperCase() === kelas.toUpperCase();
+    });
+
     if (siswaFiltered.length === 0) {
         showToast("Tidak ada data siswa ditemukan untuk kelas ini!", "error");
         return;
     }
 
-    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-    const l1 = masterData.config.LABEL_COL1 || "Tugas 1";
-    const l2 = masterData.config.LABEL_COL2 || "Tugas 2";
-    const l3 = masterData.config.LABEL_COL3 || "Tugas 3";
-    const l4 = masterData.config.LABEL_COL4 || "ASTS";
+    const semAktif = (masterData.config && masterData.config.SEMESTER_AKTIF) ? String(masterData.config.SEMESTER_AKTIF) : "1";
+    const l1 = (masterData.config && masterData.config.LABEL_COL1) || "Tugas 1";
+    const l2 = (masterData.config && masterData.config.LABEL_COL2) || "Tugas 2";
+    const l3 = (masterData.config && masterData.config.LABEL_COL3) || "Tugas 3";
+    const l4 = (masterData.config && masterData.config.LABEL_COL4) || "ASTS";
 
-    const listMapelCodes = Object.keys(MASTER_MAPEL_NAME);
+    // Ambil daftar kode mapel
+    const listMapelCodes = typeof MASTER_MAPEL_NAME !== "undefined" ? Object.keys(MASTER_MAPEL_NAME) : [];
 
-    // 1. SUSUN HEADER 2 BARIS (2-LEVEL HEADERS)
-    // Baris Header 1: Meta data & Nama Mapel (akan di-merge ke samping)
+    if (listMapelCodes.length === 0) {
+        showToast("Daftar mata pelajaran kosong!", "error");
+        return;
+    }
+
+    // 1. SUSUN HEADER 2 BARIS
     let headerRow1 = ["NO", "NISN", "NAMA SISWA", "KELAS"];
-    // Baris Header 2: Sub-item nilai per mapel
     let headerRow2 = ["", "", "", ""];
 
     listMapelCodes.forEach(code => {
-        // Nama Mapel ditempatkan di awal grup 5 kolom
         headerRow1.push(code, "", "", "", "");
-        // Sub-header komponen nilai & rata-rata (ASH)
         headerRow2.push(l1, l2, l3, l4, "ASH");
     });
 
-    // Tambahkan Header Rata-Rata Keseluruhan
     headerRow1.push("RATA-RATA KESELURUHAN");
     headerRow2.push("");
 
     let sheetData = [headerRow1, headerRow2];
 
+    // Helper internal pembersih NISN sederhana untuk frontend
+    const sanitizeNisn = (val) => String(val || "").replace(/^'/, "").trim().padStart(10, "0");
+
     // 2. SUSUN DATA SISWA
+    const inputNilaiData = masterData.inputNilai || [];
+
     siswaFiltered.forEach((s, idx) => {
-        const nisn = formatNISN(String(s[0] || "").trim());
-        const nama = String(s[2] || "").trim();
+        const rawNisn = String(s[0] || "").trim();
+        const nisn = sanitizeNisn(rawNisn);
+        const nama = String(s[1] || s[2] || "").trim();
         let row = [idx + 1, nisn, nama, kelas];
 
         let totalRataMapelSiswa = 0;
         let jumlahMapelTerisi = 0;
 
         listMapelCodes.forEach(code => {
-            const itemNilai = masterData.inputNilai.find(r => 
-                cleanNISN(r[0]) === cleanNISN(nisn) && 
+            // Pencocokan NISN + KODE MAPEL + SEMESTER
+            const itemNilai = inputNilaiData.find(r => 
+                sanitizeNisn(r[0]) === nisn && 
                 String(r[3] || "").trim().toUpperCase() === String(code).trim().toUpperCase() && 
-                String(r[4] || "").trim() === String(semAktif).trim()
+                String(r[4] || "").trim() === semAktif
             );
 
-            const n1 = itemNilai && itemNilai[5] !== "" ? parseFloat(itemNilai[5]) : "";
-            const n2 = itemNilai && itemNilai[6] !== "" ? parseFloat(itemNilai[6]) : "";
-            const n3 = itemNilai && itemNilai[7] !== "" ? parseFloat(itemNilai[7]) : "";
-            const n4 = itemNilai && itemNilai[8] !== "" ? parseFloat(itemNilai[8]) : "";
-            const nRata = itemNilai && itemNilai[9] !== "" ? parseFloat(itemNilai[9]) : "";
+            const n1 = itemNilai && itemNilai[5] !== "" && itemNilai[5] !== undefined ? parseFloat(itemNilai[5]) : "";
+            const n2 = itemNilai && itemNilai[6] !== "" && itemNilai[6] !== undefined ? parseFloat(itemNilai[6]) : "";
+            const n3 = itemNilai && itemNilai[7] !== "" && itemNilai[7] !== undefined ? parseFloat(itemNilai[7]) : "";
+            const n4 = itemNilai && itemNilai[8] !== "" && itemNilai[8] !== undefined ? parseFloat(itemNilai[8]) : "";
+            const nRata = itemNilai && itemNilai[9] !== "" && itemNilai[9] !== undefined ? parseFloat(itemNilai[9]) : "";
 
             row.push(
                 isNaN(n1) ? "" : n1,
@@ -1983,7 +2005,7 @@ function formatNilai(val) {
             );
 
             if (nRata !== "" && !isNaN(nRata)) {
-                totalRataMapelSiswa += nRata;
+                totalRataMapelSiswa += parseFloat(nRata);
                 jumlahMapelTerisi++;
             }
         });
@@ -1997,27 +2019,24 @@ function formatNilai(val) {
     // 3. BUAT WORKSHEET
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 4. ATUR MERGE CELLS
+    // 4. MERGE CELLS
     let merges = [
-        { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // Merge NO
-        { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // Merge NISN
-        { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, // Merge NAMA SISWA
-        { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } }  // Merge KELAS
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // NO
+        { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // NISN
+        { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, // NAMA SISWA
+        { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } }  // KELAS
     ];
 
-    // Merge Header Nama Mapel (Span 5 Kolom)
     let colOffset = 4;
     listMapelCodes.forEach(() => {
         merges.push({ s: { r: 0, c: colOffset }, e: { r: 0, c: colOffset + 4 } });
         colOffset += 5;
     });
 
-    // Merge Header Rata-Rata Keseluruhan
     merges.push({ s: { r: 0, c: colOffset }, e: { r: 1, c: colOffset } });
-
     ws['!merges'] = merges;
 
-    // 5. KUNCI FORMAT KOLOM B (NISN) MENJADI TEKS/STRING
+    // 5. FORMAT NISN SEBAGAI TEKS STRING
     for (let i = 3; i <= sheetData.length; i++) {
         const cellRef = `B${i}`;
         if (ws[cellRef]) {
@@ -2026,19 +2045,17 @@ function formatNilai(val) {
         }
     }
 
-    // 6. ATUR LEBAR KOLOM OTOMATIS
+    // 6. LEBAR KOLOM
     const colWidths = [{ wch: 5 }, { wch: 14 }, { wch: 30 }, { wch: 8 }];
     listMapelCodes.forEach(() => {
         colWidths.push({ wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 });
     });
-    colWidths.push({ wch: 22 }); // Lebar kolom Rata-rata Keseluruhan
-
+    colWidths.push({ wch: 22 });
     ws['!cols'] = colWidths;
 
-    // 7. BUAT WORKBOOK DAN DOWNLOAD
+    // 7. DOWNLOAD
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}`);
-
     XLSX.writeFile(wb, `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.xlsx`);
 
     showToast(`Leger Nilai Excel (.xlsx) Kelas ${kelas} berhasil diunduh!`, "success");
