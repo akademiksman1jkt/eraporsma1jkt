@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- SheetJS Library untuk Export File Excel .xlsx Asli -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -1949,7 +1949,7 @@ function formatNilai(val) {
     const sanitizeNisn = (val) => String(val || "").replace(/^'/, "").trim().padStart(10, "0");
     const inputNilaiData = masterData.inputNilai || [];
 
-    // 2. Filter Mapel yang Memiliki Nilai di Kelas Ini saja
+    // 2. Filter Mapel Aktif di Kelas Target
     const activeMapelCodes = allMapelCodes.filter(code => {
         return siswaFiltered.some(s => {
             const rawNisn = String(s[0] || "").trim();
@@ -1975,17 +1975,12 @@ function formatNilai(val) {
         return;
     }
 
-    // 3. SUSUN STRUCTURE BARIS SHEET
-    // Baris 1: Judul Utama
+    // 3. Susun Baris Header Rapor
     let row1 = [`LEGER NILAI RAPOR TENGAH SEMESTER ${namaSem}`];
-    // Baris 2: Sub Judul Kelas
     let row2 = [`KELAS ${kelas.toUpperCase()}`];
-    // Baris 3: Kosong
     let row3 = [];
 
-    // Baris 4: Header Level 1 (Mapel)
     let headerRow1 = ["NO", "NISN", "NAMA SISWA", "KELAS"];
-    // Baris 5: Header Level 2 (Komponen Nilai)
     let headerRow2 = ["", "", "", ""];
 
     activeMapelCodes.forEach(code => {
@@ -1998,7 +1993,7 @@ function formatNilai(val) {
 
     let sheetData = [row1, row2, row3, headerRow1, headerRow2];
 
-    // 4. ISIKAN DATA SISWA (Memastikan Nama Siswa Teks Dibaca Benar)
+    // 4. Susun Baris Data Siswa
     siswaFiltered.forEach((s, idx) => {
         const rawNisn = String(s[0] || "").trim();
         const nisn = sanitizeNisn(rawNisn);
@@ -2046,15 +2041,15 @@ function formatNilai(val) {
         sheetData.push(row);
     });
 
-    // 5. BUAT WORKSHEET
+    // 5. Buat Worksheet
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 6. MERGE CELLS UNTUK JUDUL & HEADER
+    // 6. Config Merges
     let merges = [
-        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // Merge NO (Baris 4 & 5)
-        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // Merge NISN
-        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // Merge NAMA SISWA
-        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }  // Merge KELAS
+        { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // NO
+        { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // NISN
+        { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // NAMA SISWA
+        { s: { r: 3, c: 3 }, e: { r: 4, c: 3 } }  // KELAS
     ];
 
     let colOffset = 4;
@@ -2066,24 +2061,106 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. FORMAT NISN SEBAGAI STRING AGAR ANGKA 0 DI DEPAN TETAP UTUH
-    for (let i = 6; i <= sheetData.length; i++) {
-        const cellRef = `B${i}`;
-        if (ws[cellRef]) {
-            ws[cellRef].t = 's';
-            ws[cellRef].z = '@';
+    // 7. Definisi Style Visual (Header Biru Soft, Font Compact, Border Thin)
+    const styleTitle = {
+        font: { name: "Calibri", sz: 11, bold: true }
+    };
+
+    const styleHeader = {
+        font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
+        fill: { fgColor: { rgb: "D9E1F2" } }, // Warna Biru Soft Rapor
+        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+        border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } }
+        }
+    };
+
+    const styleDataCenter = {
+        font: { name: "Calibri", sz: 8.5 },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+            top: { style: "thin", color: { rgb: "D3D3D3" } },
+            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+            left: { style: "thin", color: { rgb: "D3D3D3" } },
+            right: { style: "thin", color: { rgb: "D3D3D3" } }
+        }
+    };
+
+    const styleDataLeft = {
+        font: { name: "Calibri", sz: 8.5 },
+        alignment: { horizontal: "left", vertical: "center" },
+        border: {
+            top: { style: "thin", color: { rgb: "D3D3D3" } },
+            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+            left: { style: "thin", color: { rgb: "D3D3D3" } },
+            right: { style: "thin", color: { rgb: "D3D3D3" } }
+        }
+    };
+
+    // Style Khusus Nilai di Bawah KKM (< 75): Font Merah Bold
+    const styleDataUnderKKM = {
+        font: { name: "Calibri", sz: 8.5, color: { rgb: "FF0000" }, bold: true },
+        alignment: { horizontal: "center", vertical: "center" },
+        border: {
+            top: { style: "thin", color: { rgb: "D3D3D3" } },
+            bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+            left: { style: "thin", color: { rgb: "D3D3D3" } },
+            right: { style: "thin", color: { rgb: "D3D3D3" } }
+        }
+    };
+
+    // Terapkan Style ke Seluruh Sel Worksheet
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!ws[cellAddr]) ws[cellAddr] = { t: 's', v: '' };
+
+            if (R === 0 || R === 1) {
+                ws[cellAddr].s = styleTitle;
+            } else if (R === 3 || R === 4) {
+                ws[cellAddr].s = styleHeader;
+            } else if (R >= 5) {
+                const val = ws[cellAddr].v;
+                
+                // Jika nilai numerik < 75 (di bawah KKM), gunakan warna merah
+                if (C >= 4 && typeof val === 'number' && val < 75) {
+                    ws[cellAddr].s = styleDataUnderKKM;
+                } else if (C === 2) {
+                    ws[cellAddr].s = styleDataLeft; // Nama Siswa Rata Kiri
+                } else {
+                    ws[cellAddr].s = styleDataCenter; // Sisanya Rata Tengah
+                }
+
+                // Format Teks String NISN (Kolom B)
+                if (C === 1) {
+                    ws[cellAddr].t = 's';
+                    ws[cellAddr].z = '@';
+                }
+            }
         }
     }
 
-    // 8. AUTOFIT LEBAR KOLOM SESUAI ISI
-    const colWidths = [{ wch: 5 }, { wch: 14 }, { wch: 32 }, { wch: 8 }];
+    // 8. Pengaturan Lebar Kolom Ringkas (Hemat Kertas Cetak)
+    const colWidths = [
+        { wch: 4.5 }, // NO
+        { wch: 12.5 },// NISN
+        { wch: 28 },  // NAMA SISWA
+        { wch: 6.5 }  // KELAS
+    ];
+
+    // Kolom Nilai Dibuat Sangat Ringkas (wch: 6.5)
     activeMapelCodes.forEach(() => {
-        colWidths.push({ wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 });
+        colWidths.push({ wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 });
     });
-    colWidths.push({ wch: 22 });
+    colWidths.push({ wch: 18 }); // RATA-RATA KESELURUHAN
+
     ws['!cols'] = colWidths;
 
-    // 9. UNDUH FILE EXCEL
+    // 9. Download File
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}`);
 
