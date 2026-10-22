@@ -1949,7 +1949,7 @@ function formatNilai(val) {
     const sanitizeNisn = (val) => String(val || "").replace(/^'/, "").trim().padStart(10, "0");
     const inputNilaiData = masterData.inputNilai || [];
 
-    // 2. Filter Mapel Aktif di Kelas Target
+    // 2. Filter Mapel Aktif
     const activeMapelCodes = allMapelCodes.filter(code => {
         return siswaFiltered.some(s => {
             const rawNisn = String(s[0] || "").trim();
@@ -2044,8 +2044,13 @@ function formatNilai(val) {
     // 5. Buat Worksheet
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 6. Config Merges
+    // Hitung Kolom Paling Kanan
+    const totalColumns = 4 + (activeMapelCodes.length * 5); // Total indeks kolom akhir
+
+    // 6. Config Merges (Termasuk Merge Judul Baris 1 & 2 Agar Tidak Terpotong)
     let merges = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: totalColumns } }, // MERGE JUDUL BARIS 1
+        { s: { r: 1, c: 0 }, e: { r: 1, c: totalColumns } }, // MERGE KELAS BARIS 2
         { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // NO
         { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // NISN
         { s: { r: 3, c: 2 }, e: { r: 4, c: 2 } }, // NAMA SISWA
@@ -2061,14 +2066,15 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Definisi Style Visual (Header Biru Soft, Font Compact, Border Thin)
+    // 7. Style Definitions
     const styleTitle = {
-        font: { name: "Calibri", sz: 11, bold: true }
+        font: { name: "Calibri", sz: 12, bold: true },
+        alignment: { horizontal: "left", vertical: "center" }
     };
 
     const styleHeader = {
         font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "D9E1F2" } }, // Warna Biru Soft Rapor
+        fill: { fgColor: { rgb: "D9E1F2" } }, // Biru Soft
         alignment: { horizontal: "center", vertical: "center", wrapText: true },
         border: {
             top: { style: "thin", color: { rgb: "000000" } },
@@ -2100,9 +2106,10 @@ function formatNilai(val) {
         }
     };
 
-    // Style Khusus Nilai di Bawah KKM (< 75): Font Merah Bold
+    // Style Nilai < 75: Text Merah Bold + Background Merah Transparan/Soft (#FCE4D6)
     const styleDataUnderKKM = {
-        font: { name: "Calibri", sz: 8.5, color: { rgb: "FF0000" }, bold: true },
+        font: { name: "Calibri", sz: 8.5, color: { rgb: "C00000" }, bold: true },
+        fill: { fgColor: { rgb: "FCE4D6" } }, // Warna Merah Transparan/Soft
         alignment: { horizontal: "center", vertical: "center" },
         border: {
             top: { style: "thin", color: { rgb: "D3D3D3" } },
@@ -2112,7 +2119,7 @@ function formatNilai(val) {
         }
     };
 
-    // Terapkan Style ke Seluruh Sel Worksheet
+    // Apply Style ke Semua Sel
     const range = XLSX.utils.decode_range(ws['!ref']);
     for (let R = range.s.r; R <= range.e.r; ++R) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -2126,16 +2133,15 @@ function formatNilai(val) {
             } else if (R >= 5) {
                 const val = ws[cellAddr].v;
                 
-                // Jika nilai numerik < 75 (di bawah KKM), gunakan warna merah
+                // Pengecekan Nilai < 75 (Hanya pada kolom nilai / C >= 4)
                 if (C >= 4 && typeof val === 'number' && val < 75) {
                     ws[cellAddr].s = styleDataUnderKKM;
                 } else if (C === 2) {
-                    ws[cellAddr].s = styleDataLeft; // Nama Siswa Rata Kiri
+                    ws[cellAddr].s = styleDataLeft;
                 } else {
-                    ws[cellAddr].s = styleDataCenter; // Sisanya Rata Tengah
+                    ws[cellAddr].s = styleDataCenter;
                 }
 
-                // Format Teks String NISN (Kolom B)
                 if (C === 1) {
                     ws[cellAddr].t = 's';
                     ws[cellAddr].z = '@';
@@ -2144,7 +2150,7 @@ function formatNilai(val) {
         }
     }
 
-    // 8. Pengaturan Lebar Kolom Ringkas (Hemat Kertas Cetak)
+    // 8. Pengaturan Lebar Kolom Ringkas
     const colWidths = [
         { wch: 4.5 }, // NO
         { wch: 12.5 },// NISN
@@ -2152,15 +2158,14 @@ function formatNilai(val) {
         { wch: 6.5 }  // KELAS
     ];
 
-    // Kolom Nilai Dibuat Sangat Ringkas (wch: 6.5)
     activeMapelCodes.forEach(() => {
         colWidths.push({ wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 }, { wch: 6.5 });
     });
-    colWidths.push({ wch: 18 }); // RATA-RATA KESELURUHAN
+    colWidths.push({ wch: 18 });
 
     ws['!cols'] = colWidths;
 
-    // 9. Download File
+    // 9. Export File
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}`);
 
