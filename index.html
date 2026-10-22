@@ -1919,38 +1919,43 @@ function formatNilai(val) {
         return;
     }
 
-    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+    const siswaFiltered = masterData.leger.slice(1).filter(r => String(r[3] || "").trim() === kelas);
     if (siswaFiltered.length === 0) {
         showToast("Tidak ada data siswa ditemukan untuk kelas ini!", "error");
         return;
     }
 
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
-    const l1 = masterData.config.LABEL_COL1 || "N1";
-    const l2 = masterData.config.LABEL_COL2 || "N2";
-    const l3 = masterData.config.LABEL_COL3 || "N3";
-    const l4 = masterData.config.LABEL_COL4 || "N4";
+    const l1 = masterData.config.LABEL_COL1 || "Tugas 1";
+    const l2 = masterData.config.LABEL_COL2 || "Tugas 2";
+    const l3 = masterData.config.LABEL_COL3 || "Tugas 3";
+    const l4 = masterData.config.LABEL_COL4 || "ASTS";
 
     const listMapelCodes = Object.keys(MASTER_MAPEL_NAME);
 
-    // 1. SUSUN HEADER TABEL
-    let headers = ["NO", "NISN", "NAMA SISWA", "KELAS"];
-    listMapelCodes.forEach(code => {
-        headers.push(`${code} (${l1})`);
-        headers.push(`${code} (${l2})`);
-        headers.push(`${code} (${l3})`);
-        headers.push(`${code} (${l4})`);
-        headers.push(`RATA ${code}`);
-    });
-    headers.push("RATA-RATA KESELURUHAN");
+    // 1. SUSUN HEADER 2 BARIS (2-LEVEL HEADERS)
+    // Baris Header 1: Meta data & Nama Mapel (akan di-merge ke samping)
+    let headerRow1 = ["NO", "NISN", "NAMA SISWA", "KELAS"];
+    // Baris Header 2: Sub-item nilai per mapel
+    let headerRow2 = ["", "", "", ""];
 
-    let sheetData = [headers];
+    listMapelCodes.forEach(code => {
+        // Nama Mapel ditempatkan di awal grup 5 kolom
+        headerRow1.push(code, "", "", "", "");
+        // Sub-header komponen nilai & rata-rata (ASH)
+        headerRow2.push(l1, l2, l3, l4, "ASH");
+    });
+
+    // Tambahkan Header Rata-Rata Keseluruhan
+    headerRow1.push("RATA-RATA KESELURUHAN");
+    headerRow2.push("");
+
+    let sheetData = [headerRow1, headerRow2];
 
     // 2. SUSUN DATA SISWA
     siswaFiltered.forEach((s, idx) => {
-        // [PERBAIKAN 1] Konversi NISN ke String murni agar angka 0 di depan terjaga
-        const nisn = String(s[0] || "").trim();
-        const nama = s[2];
+        const nisn = formatNISN(String(s[0] || "").trim());
+        const nama = String(s[2] || "").trim();
         let row = [idx + 1, nisn, nama, kelas];
 
         let totalRataMapelSiswa = 0;
@@ -1958,21 +1963,27 @@ function formatNilai(val) {
 
         listMapelCodes.forEach(code => {
             const itemNilai = masterData.inputNilai.find(r => 
-                String(r[0]).trim() === String(nisn).trim() && 
-                String(r[3]).trim() === String(code).trim() && 
-                String(r[4]).trim() === String(semAktif).trim()
+                cleanNISN(r[0]) === cleanNISN(nisn) && 
+                String(r[3] || "").trim().toUpperCase() === String(code).trim().toUpperCase() && 
+                String(r[4] || "").trim() === String(semAktif).trim()
             );
 
-            const n1 = itemNilai && itemNilai[5] !== "" ? parseFloat(itemNilai[5]) || itemNilai[5] : "";
-            const n2 = itemNilai && itemNilai[6] !== "" ? parseFloat(itemNilai[6]) || itemNilai[6] : "";
-            const n3 = itemNilai && itemNilai[7] !== "" ? parseFloat(itemNilai[7]) || itemNilai[7] : "";
-            const n4 = itemNilai && itemNilai[8] !== "" ? parseFloat(itemNilai[8]) || itemNilai[8] : "";
-            const nRata = itemNilai && itemNilai[9] !== "" ? parseFloat(itemNilai[9]) || itemNilai[9] : "";
+            const n1 = itemNilai && itemNilai[5] !== "" ? parseFloat(itemNilai[5]) : "";
+            const n2 = itemNilai && itemNilai[6] !== "" ? parseFloat(itemNilai[6]) : "";
+            const n3 = itemNilai && itemNilai[7] !== "" ? parseFloat(itemNilai[7]) : "";
+            const n4 = itemNilai && itemNilai[8] !== "" ? parseFloat(itemNilai[8]) : "";
+            const nRata = itemNilai && itemNilai[9] !== "" ? parseFloat(itemNilai[9]) : "";
 
-            row.push(n1, n2, n3, n4, nRata);
+            row.push(
+                isNaN(n1) ? "" : n1,
+                isNaN(n2) ? "" : n2,
+                isNaN(n3) ? "" : n3,
+                isNaN(n4) ? "" : n4,
+                isNaN(nRata) ? "" : nRata
+            );
 
-            if (nRata !== "" && !isNaN(parseFloat(nRata))) {
-                totalRataMapelSiswa += parseFloat(nRata);
+            if (nRata !== "" && !isNaN(nRata)) {
+                totalRataMapelSiswa += nRata;
                 jumlahMapelTerisi++;
             }
         });
@@ -1983,34 +1994,50 @@ function formatNilai(val) {
         sheetData.push(row);
     });
 
-    // 3. BUAT WORKSHEET DENGAN raw: true
-    // [PERBAIKAN 2] Menambahkan opsi { raw: true } agar SheetJS tidak mengubah string ke number otomatis
+    // 3. BUAT WORKSHEET
     const ws = XLSX.utils.aoa_to_sheet(sheetData, { raw: true });
 
-    // 4. KUNCI FORMAT KOLOM B (NISN) MENJADI TEKS/STRING ('s')
-    // [PERBAIKAN 3] Iterasi setiap baris data di Kolom B (NISN)
-    for (let i = 2; i <= sheetData.length; i++) {
-        const cellRef = `B${i}`; // Kolom B adalah NISN
+    // 4. ATUR MERGE CELLS
+    let merges = [
+        { s: { r: 0, c: 0 }, e: { r: 1, c: 0 } }, // Merge NO
+        { s: { r: 0, c: 1 }, e: { r: 1, c: 1 } }, // Merge NISN
+        { s: { r: 0, c: 2 }, e: { r: 1, c: 2 } }, // Merge NAMA SISWA
+        { s: { r: 0, c: 3 }, e: { r: 1, c: 3 } }  // Merge KELAS
+    ];
+
+    // Merge Header Nama Mapel (Span 5 Kolom)
+    let colOffset = 4;
+    listMapelCodes.forEach(() => {
+        merges.push({ s: { r: 0, c: colOffset }, e: { r: 0, c: colOffset + 4 } });
+        colOffset += 5;
+    });
+
+    // Merge Header Rata-Rata Keseluruhan
+    merges.push({ s: { r: 0, c: colOffset }, e: { r: 1, c: colOffset } });
+
+    ws['!merges'] = merges;
+
+    // 5. KUNCI FORMAT KOLOM B (NISN) MENJADI TEKS/STRING
+    for (let i = 3; i <= sheetData.length; i++) {
+        const cellRef = `B${i}`;
         if (ws[cellRef]) {
-            ws[cellRef].t = 's'; // 's' = String/Text
-            ws[cellRef].z = '@'; // Format Text di Excel
+            ws[cellRef].t = 's';
+            ws[cellRef].z = '@';
         }
     }
 
-    // 5. ATUR LEBAR KOLOM OTOMATIS (AUTOFIT BASED ON CONTENT)
-    const colWidths = headers.map((h, colIdx) => {
-        let maxLen = h.length;
-        sheetData.forEach(row => {
-            const val = row[colIdx] !== undefined ? String(row[colIdx]) : "";
-            if (val.length > maxLen) maxLen = val.length;
-        });
-        return { wch: Math.max(maxLen + 3, 10) };
+    // 6. ATUR LEBAR KOLOM OTOMATIS
+    const colWidths = [{ wch: 5 }, { wch: 14 }, { wch: 30 }, { wch: 8 }];
+    listMapelCodes.forEach(() => {
+        colWidths.push({ wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 }, { wch: 9 });
     });
+    colWidths.push({ wch: 22 }); // Lebar kolom Rata-rata Keseluruhan
+
     ws['!cols'] = colWidths;
 
-    // 6. BUAT FILE EXCEL (.XLSX) DAN UNDUH
+    // 7. BUAT WORKBOOK DAN DOWNLOAD
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Leger ${kelas}`);
+    XLSX.utils.book_append_sheet(wb, ws, `Leger_${kelas}`);
 
     XLSX.writeFile(wb, `Leger_Nilai_Lengkap_${kelas}_Sem${semAktif}.xlsx`);
 
