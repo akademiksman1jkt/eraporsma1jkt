@@ -2034,10 +2034,9 @@ function formatNilai(val) {
     const semAktif = (masterData.config && masterData.config.SEMESTER_AKTIF) ? String(masterData.config.SEMESTER_AKTIF) : "1";
     const namaSem = semAktif === "1" ? "GANJIL" : "GENAP";
     
-    // Konfigurasi Label Kolom 1-4
     const l1 = (masterData.config && masterData.config.LABEL_COL1) || "TUGAS 1";
     const l2 = (masterData.config && masterData.config.LABEL_COL2) || "TUGAS 2";
-    const l3 = (masterData.config && masterData.config.LABEL_COL3) || "TUGAS 3";
+    const l3 = (masterData.config && masterData.config.LABEL_COL3) || "ASH";
     const l4 = (masterData.config && masterData.config.LABEL_COL4) || "ASTS";
 
     const allMapelCodes = typeof MASTER_MAPEL_NAME !== "undefined" ? Object.keys(MASTER_MAPEL_NAME) : [];
@@ -2080,7 +2079,6 @@ function formatNilai(val) {
 
     activeMapelCodes.forEach(code => {
         headerRow1.push(code, "", "", "", "");
-        // DIBETULKAN: Header kolom 1-4 memakai label config, kolom ke-5 DIISIPasti "RATA"
         headerRow2.push(l1, l2, l3, l4, "RATA");
     });
 
@@ -2162,39 +2160,31 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Definisi Border & Style
+    // 7. Defining Styles
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
     };
 
-    // BORDER HEADER DAN INTERNAL (D3D3D3)
-    const borderBiasa = {
-        top: { style: "thin", color: { rgb: "D3D3D3" } },
-        bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-        left: { style: "thin", color: { rgb: "D3D3D3" } },
-        right: { style: "thin", color: { rgb: "D3D3D3" } }
-    };
-
-    // BORDER PEMISAH MAPEL (DIBETULKAN: Menggunakan Thin Warna Abu Gelap 595959, SAMAPERSIS SEPERTI HEADER, TIDAK HITAM PEKAT)
-    const borderPemisahMapel = {
-        top: { style: "thin", color: { rgb: "D3D3D3" } },
-        bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-        left: { style: "thin", color: { rgb: "D3D3D3" } },
-        right: { style: "thin", color: { rgb: "595959" } } // Tipis & Halus seperti border header
+    // GARIS TEPI HITAM SERAGAM UNTUK SELURUH TABEL
+    const borderTepiHitam = {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
     };
 
     const styleHeader = {
         font: { name: "Calibri", sz: 9, bold: true, color: { rgb: "000000" } },
-        fill: { fgColor: { rgb: "D9E1F2" } },
+        fill: { fgColor: { rgb: "BDD7EE" } }, // Biru soft header sesuai gambar
         alignment: { horizontal: "center", vertical: "center", wrapText: true },
-        border: borderBiasa
+        border: borderTepiHitam
     };
 
     const styleDataLeft = {
         font: { name: "Calibri", sz: 9.5 },
         alignment: { horizontal: "left", vertical: "center" },
-        border: borderBiasa
+        border: borderTepiHitam
     };
 
     // Apply Style ke Semua Sel
@@ -2214,19 +2204,17 @@ function formatNilai(val) {
                 if (C === 2) {
                     ws[cellAddr].s = styleDataLeft;
                 } else if (C < 4 || C === totalColumns) {
+                    // Identitas umum (NO, NISN, KELAS, RATA-RATA KESELURUHAN)
                     ws[cellAddr].s = {
                         font: { name: "Calibri", sz: 10, bold: C === totalColumns },
                         alignment: { horizontal: "center", vertical: "center" },
-                        border: borderBiasa
+                        border: borderTepiHitam,
+                        fill: (C === totalColumns) ? { fgColor: { rgb: "BDD7EE" } } : undefined
                     };
                 } else {
                     // AREA KOLOM NILAI MAPEL
-                    const mapelIdx = Math.floor((C - 4) / 5);
-                    const isLastSubCol = ((C - 4) % 5) === 4;
+                    const isLastSubCol = ((C - 4) % 5) === 4; // Sub-kolom RATA
                     
-                    // SELANG-SELING: BIRU HEADER (D9E1F2) DAN PUTIH (FFFFFF)
-                    const bgSoftColor = (mapelIdx % 2 === 0) ? "D9E1F2" : "FFFFFF";
-
                     // KONVERSI MURNI ANGKA UNTUK PENGECEKAN KKM
                     const numVal = parseFloat(rawVal);
                     const isUnderKKM = !isNaN(numVal) && numVal > 0 && numVal < 75;
@@ -2235,13 +2223,13 @@ function formatNilai(val) {
                         font: { 
                             name: "Calibri", 
                             sz: 11,
-                            bold: isUnderKKM || isLastSubCol,
-                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Teks Merah jika < 75
+                            bold: isUnderKKM || isLastSubCol, // Kolom RATA tebal (Bold)
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Angka merah jika < 75
                         },
-                        fill: { fgColor: { rgb: bgSoftColor } },
+                        // HANYA KOLOM RATA YANG DIBERI WARNA BIRU BD D7 EE
+                        fill: isLastSubCol ? { fgColor: { rgb: "BDD7EE" } } : { fgColor: { rgb: "FFFFFF" } },
                         alignment: { horizontal: "center", vertical: "center" },
-                        // DIBETULKAN: Menggunakan borderPemisahMapel jika kolom RATA
-                        border: isLastSubCol ? borderPemisahMapel : borderBiasa
+                        border: borderTepiHitam // SEMUA SEL MENGGUNAKAN GARIS TEPI HITAM TEGAS
                     };
                 }
 
