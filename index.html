@@ -2141,7 +2141,7 @@ function formatNilai(val) {
     // Hitung Total Kolom Paling Kanan
     const totalColumns = 4 + (activeMapelCodes.length * 5);
 
-    // 6. Config Merges (Baris Judul 0 dan 1 Tidak Di-merge Lagi)
+    // 6. Config Merges (Baris Judul A1 & A2 Tidak Di-merge)
     let merges = [
         { s: { r: 3, c: 0 }, e: { r: 4, c: 0 } }, // NO
         { s: { r: 3, c: 1 }, e: { r: 4, c: 1 } }, // NISN
@@ -2158,7 +2158,7 @@ function formatNilai(val) {
     merges.push({ s: { r: 3, c: colOffset }, e: { r: 4, c: colOffset } });
     ws['!merges'] = merges;
 
-    // 7. Definisi Style
+    // 7. Definisi Style & Warna Fill
     const styleTitle = {
         font: { name: "Calibri", sz: 12, bold: true },
         alignment: { horizontal: "left", vertical: "center" }
@@ -2173,6 +2173,8 @@ function formatNilai(val) {
 
     const fillBiruSoft = { patternType: "solid", fgColor: { rgb: "BDD7EE" } };
     const fillPutihPasti = { patternType: "solid", fgColor: { rgb: "FFFFFF" } };
+    const fillMerahMuda = { patternType: "solid", fgColor: { rgb: "FCE4D6" } }; // Background < 75 & Nilai 0
+    const fillKuning = { patternType: "solid", fgColor: { rgb: "FFF2CC" } };    // Background Kosong
 
     // Apply Style ke Semua Sel
     const range = XLSX.utils.decode_range(ws['!ref']);
@@ -2180,7 +2182,7 @@ function formatNilai(val) {
         for (let C = range.s.c; C <= range.e.c; ++C) {
             const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
 
-            // BARIS JUDUL (0 & 1): Hanya set di Kolom A (A1 & A2), hapus sel sebelahnya agar meluap
+            // BARIS JUDUL (0 & 1)
             if (R === 0 || R === 1) {
                 if (C === 0) {
                     ws[cellAddr].s = styleTitle;
@@ -2218,29 +2220,50 @@ function formatNilai(val) {
                     };
                 } else if (C === totalColumns) {
                     // RATA-RATA KESELURUHAN
+                    const isBlank = (rawVal === "" || rawVal === null || rawVal === undefined);
+                    const numVal = parseFloat(rawVal);
+                    const isUnderKKM = !isBlank && !isNaN(numVal) && numVal < 75;
+
                     ws[cellAddr].s = {
-                        font: { name: "Calibri", sz: 10, bold: true },
+                        font: { 
+                            name: "Calibri", 
+                            sz: 10, 
+                            bold: true,
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" }
+                        },
                         alignment: { horizontal: "center", vertical: "center" },
                         border: borderHitamSolid,
-                        fill: fillBiruSoft
+                        fill: isUnderKKM ? fillMerahMuda : fillBiruSoft
                     };
                 } else {
                     // AREA NILAI MAPEL
                     const subColIndex = (C - 4) % 5;
                     const isRataCol = (subColIndex === 4); // Sub-kolom RATA
                     
+                    const isBlank = (rawVal === "" || rawVal === null || rawVal === undefined);
                     const numVal = parseFloat(rawVal);
-                    const isUnderKKM = !isNaN(numVal) && numVal > 0 && numVal < 75;
+                    
+                    // Termasuk angka 0 dan nilai < 75
+                    const isUnderKKM = !isBlank && !isNaN(numVal) && numVal >= 0 && numVal < 75;
+
+                    // Penentuan Latar Belakang Sel
+                    let selectedFill = fillPutihPasti;
+                    if (isBlank) {
+                        selectedFill = fillKuning; // Kosong -> Kuning
+                    } else if (isUnderKKM) {
+                        selectedFill = fillMerahMuda; // < 75 termasuk 0 -> Merah Muda
+                    } else if (isRataCol) {
+                        selectedFill = fillBiruSoft; // RATA terisi >= 75 -> Biru Soft
+                    }
 
                     ws[cellAddr].s = {
                         font: { 
                             name: "Calibri", 
                             sz: 11,
                             bold: isUnderKKM || isRataCol,
-                            color: { rgb: isUnderKKM ? "C00000" : "000000" }
+                            color: { rgb: isUnderKKM ? "C00000" : "000000" } // Teks Merah jika < 75 atau 0
                         },
-                        // HANYA SUB-KOLOM RATA YANG BIRU, LAINNYA PUTIH POLOS
-                        fill: isRataCol ? fillBiruSoft : fillPutihPasti,
+                        fill: selectedFill,
                         alignment: { horizontal: "center", vertical: "center" },
                         border: borderHitamSolid
                     };
