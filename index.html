@@ -363,6 +363,27 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- FITUR EKSPOR LEGER UNTUK WALI KELAS -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+                    <h4 class="font-bold text-sm text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i> Ekspor Leger Nilai Kelas (Semua Mapel)
+                    </h4>
+                    <p class="text-xs text-slate-500">
+                        Unduh seluruh akumulasi nilai siswa di kelas binaan Anda dalam bentuk file Excel.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Kelas Binaan</label>
+                            <select id="selectKelasEksporLegerWalas" class="w-full p-3 border-2 border-slate-300 rounded-xl bg-slate-50 font-bold text-sm outline-none focus:border-indigo-600">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <button onclick="eksporLegerWalas()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-5 py-3 rounded-xl text-sm shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel text-base"></i> Ekspor Leger Nilai
+                        </button>
+                    </div>
+                </div>
             </section>
 
             <!-- TAB 3: CETAK RAPOR PTS -->
@@ -725,15 +746,23 @@ function showToast(message, type = "info") {
 
         // Pengisian Kelas Binaan khusus Wali Kelas Non-Admin
         if (isWaliKelas && !isAdmin) {
-            myWalasRows.forEach(row => {
-                const kelasBinaan = row[0];
-                if (kelasBinaan) {
-                    const opt = `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                    htmlKelasWalas += opt;
-                    htmlKelasCetak += opt;
-                }
-            });
+    let htmlKelasWalas = `<option value="">-- Pilih Kelas Binaan --</option>`;
+    
+    myWalasRows.forEach(row => {
+        const kelasBinaan = row[0];
+        if (kelasBinaan) {
+            htmlKelasWalas += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
         }
+    });
+
+    // Pasang opsi kelas binaan ke dropdown Wali Kelas
+    document.getElementById("selectKelasWalas").innerHTML = htmlKelasWalas;
+    document.getElementById("selectKelasCetak").innerHTML = htmlKelasWalas;
+    
+    // TAMBAHKAN BARIS INI:
+    const dropdownWalas = document.getElementById("selectKelasEksporLegerWalas");
+    if (dropdownWalas) dropdownWalas.innerHTML = htmlKelasWalas;
+}
 
         // Percabangan Pengisian Dropdown Utama
         if (isAdmin) {
@@ -2299,6 +2328,23 @@ function formatNilai(val) {
     XLSX.writeFile(wb, `LEGER_NILAI_RAPOR_PTS_${kelas}_SEM_${semAktif}.xlsx`);
 
     showToast(`Leger Nilai Excel Kelas ${kelas} berhasil diunduh!`, "success");
+}
+        function eksporLegerWalas() {
+    const selectElem = document.getElementById("selectKelasEksporLegerWalas");
+    const kelasSelected = selectElem ? selectElem.value : "";
+
+    if (!kelasSelected) {
+        showToast("Peringatan", "Silakan pilih kelas terlebih dahulu!", "warning");
+        return;
+    }
+
+    // Memanggil fungsi ekspor leger utama
+    if (typeof eksporLegerNilaiKelas === "function") {
+        // Jika fungsi utama membutuhkan parameter kelas
+        eksporLegerNilaiKelas(kelasSelected);
+    } else if (typeof eksporLegerExcel === "function") {
+        eksporLegerExcel(kelasSelected);
+    }
 }
         function formatNISN(nisn) {
     let clean = String(nisn || "").trim();
