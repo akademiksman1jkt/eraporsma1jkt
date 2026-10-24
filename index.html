@@ -373,94 +373,94 @@
 
             <!-- TAB 3: CETAK RAPOR PTS -->
 <section id="cetakRaporTab" class="tab-content hidden space-y-4">
-    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end no-print">
-        
-        <!-- PENGATURAN DATA SISWA -->
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mode Cetak Rapor</label>
-            <select id="selectModeCetak" onchange="toggleModeCetakUI()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-indigo-950">
-                <option value="INDIVIDUAL">Satu Orang Siswa (Individual)</option>
-                <option value="SATU_KELAS">Satu Kelas Sekaligus (Massal)</option>
-            </select>
-        </div>
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end no-print">
+                    
+                    <!-- PENGATURAN DATA SISWA -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mode Cetak Rapor</label>
+                        <select id="selectModeCetak" onchange="toggleModeCetakUI()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-indigo-950">
+                            <option value="INDIVIDUAL">Satu Orang Siswa (Individual)</option>
+                            <option value="SATU_KELAS">Satu Kelas Sekaligus (Massal)</option>
+                        </select>
+                    </div>
 
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Kelas</label>
-            <select id="selectKelasCetak" onchange="loadOptionSiswaCetak()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold">
-                <option value="">-- Pilih Kelas --</option>
-            </select>
-        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Kelas</label>
+                        <select id="selectKelasCetak" onchange="loadOptionSiswaCetak()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold">
+                            <option value="">-- Pilih Kelas --</option>
+                        </select>
+                    </div>
 
-        <div id="containerSelectSiswaCetak">
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Siswa</label>
-            <select id="selectSiswaCetak" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold">
-                <option value="">-- Pilih Siswa --</option>
-            </select>
-        </div>
+                    <div id="containerSelectSiswaCetak">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Siswa</label>
+                        <select id="selectSiswaCetak" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold">
+                            <option value="">-- Pilih Siswa --</option>
+                        </select>
+                    </div>
 
-        <!-- PENGATURAN FONT & UKURAN -->
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Font</label>
-            <select id="selectFontRapor" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
-                <option value="DEFAULT">Default (Font Bawaan Web)</option>
-                <option value="Times New Roman">Times New Roman (Formal)</option>
-                <option value="Arial">Arial (Bersih)</option>
-                <option value="Calibri">Calibri (Standar Dokumen)</option>
-                <option value="Georgia">Georgia (Elegan)</option>
-            </select>
-        </div>
+                    <!-- PENGATURAN FONT & UKURAN -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Jenis Font</label>
+                        <select id="selectFontRapor" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
+                            <option value="DEFAULT">Default (Font Bawaan Web)</option>
+                            <option value="Times New Roman">Times New Roman (Formal)</option>
+                            <option value="Arial">Arial (Bersih)</option>
+                            <option value="Calibri">Calibri (Standar Dokumen)</option>
+                            <option value="Georgia">Georgia (Elegan)</option>
+                        </select>
+                    </div>
 
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Ukuran Teks Tabel</label>
-            <select id="selectUkuranFont" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
-                <option value="text-xs">Standar (Default / 12px)</option>
-                <option value="text-[11px]">Ringkas / Pas 1 Lembar (11px)</option>
-                <option value="text-sm">Besar / Jelas (14px)</option>
-            </select>
-        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Ukuran Teks Tabel</label>
+                        <select id="selectUkuranFont" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
+                            <option value="text-xs">Standar (Default / 12px)</option>
+                            <option value="text-[11px]">Ringkas / Pas 1 Lembar (11px)</option>
+                            <option value="text-sm">Besar / Jelas (14px)</option>
+                        </select>
+                    </div>
 
-        <!-- PENGATURAN WARNA GARIS & HEADER -->
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Warna Garis Tabel & KOP</label>
-            <select id="selectWarnaGaris" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
-                <option value="DEFAULT">Indigo (Default Asli)</option>
-                <option value="border-black">Hitam Pekat (Cetak Printer)</option>
-                <option value="border-slate-800">Abu-abu Gelap (Formal)</option>
-                <option value="border-emerald-800">Hijau Emerald</option>
-                <option value="border-rose-900">Merah Maroon</option>
-            </select>
-        </div>
+                    <!-- PENGATURAN WARNA GARIS & HEADER -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Warna Garis Tabel & KOP</label>
+                        <select id="selectWarnaGaris" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
+                            <option value="DEFAULT">Indigo (Default Asli)</option>
+                            <option value="border-black">Hitam Pekat (Cetak Printer)</option>
+                            <option value="border-slate-800">Abu-abu Gelap (Formal)</option>
+                            <option value="border-emerald-800">Hijau Emerald</option>
+                            <option value="border-rose-900">Merah Maroon</option>
+                        </select>
+                    </div>
 
-        <div>
-            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Warna Background Header</label>
-            <select id="selectWarnaHeader" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
-                <option value="DEFAULT">Indigo Soft (Default Asli)</option>
-                <option value="bg-slate-200 text-slate-900">Abu-abu Soft (Standar Cetak)</option>
-                <option value="bg-slate-800 text-white">Gelap / Dark Navy</option>
-                <option value="bg-emerald-800 text-white">Hijau Emerald</option>
-                <option value="bg-rose-900 text-white">Merah Maroon</option>
-            </select>
-        </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Warna Background Header</label>
+                        <select id="selectWarnaHeader" onchange="previewRaporPTS()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold text-slate-800">
+                            <option value="DEFAULT">Indigo Soft (Default Asli)</option>
+                            <option value="bg-slate-200 text-slate-900">Abu-abu Soft (Standar Cetak)</option>
+                            <option value="bg-slate-800 text-white">Gelap / Dark Navy</option>
+                            <option value="bg-emerald-800 text-white">Hijau Emerald</option>
+                            <option value="bg-rose-900 text-white">Merah Maroon</option>
+                        </select>
+                    </div>
 
-        <!-- TOMBOL AKSI -->
-        <div class="md:col-span-4 flex flex-wrap gap-2 justify-end border-t border-slate-200 pt-4">
-            <button onclick="previewRaporPTS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow">
-                <i class="fa-solid fa-eye"></i> Tampilkan Preview
-            </button>
-            <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-950 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow">
-                <i class="fa-solid fa-print"></i> Cetak / Save PDF
-            </button>
-        </div>
-    </div>
+                    <!-- TOMBOL AKSI -->
+                    <div class="md:col-span-4 flex flex-wrap gap-2 justify-end border-t border-slate-200 pt-4">
+                        <button onclick="previewRaporPTS()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-eye"></i> Tampilkan Preview
+                        </button>
+                        <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-950 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-print"></i> Cetak / Save PDF
+                        </button>
+                    </div>
+                </div>
 
-    <!-- AREA PREVIEW RAPOR -->
-    <div id="printableArea" class="space-y-8">
-        <div class="bg-white p-12 rounded-2xl shadow-lg border border-slate-200 max-w-4xl mx-auto text-center text-slate-400">
-            <i class="fa-solid fa-print text-5xl mb-3 text-indigo-300"></i>
-            <p class="font-medium text-slate-600">Pilih mode cetak, kelas, lalu tekan <b>Tampilkan Preview</b> untuk memuat Rapor PTS.</p>
-        </div>
-    </div>
-</section>
+                <!-- AREA PREVIEW RAPOR -->
+                <div id="printableArea" class="space-y-8">
+                    <div class="bg-white p-12 rounded-2xl shadow-lg border border-slate-200 max-w-4xl mx-auto text-center text-slate-400">
+                        <i class="fa-solid fa-print text-5xl mb-3 text-indigo-300"></i>
+                        <p class="font-medium text-slate-600">Pilih mode cetak, kelas, lalu tekan <b>Tampilkan Preview</b> untuk memuat Rapor PTS.</p>
+                    </div>
+                </div>
+            </section>
 
             <!-- TAB 4: PANEL ADMIN -->
             <section id="adminTab" class="tab-content hidden space-y-6">
@@ -1722,43 +1722,34 @@ function showToast(message, type = "info") {
     const kelas = document.getElementById("selectKelasCetak").value;
     const containerPrint = document.getElementById("printableArea");
 
-    // Ambil Pengaturan Kustomisasi Atribut
-    const fontSelected = document.getElementById("selectFontRapor") ? document.getElementById("selectFontRapor").value : "DEFAULT";
-    const sizeSelected = document.getElementById("selectUkuranFont") ? document.getElementById("selectUkuranFont").value : "text-xs";
-    const garisSelected = document.getElementById("selectWarnaGaris") ? document.getElementById("selectWarnaGaris").value : "DEFAULT";
-    const headerSelected = document.getElementById("selectWarnaHeader") ? document.getElementById("selectWarnaHeader").value : "DEFAULT";
-
     if (!kelas) {
         showToast("Silakan pilih Kelas terlebih dahulu!", "warning");
         return;
     }
 
-    // 1. Style Font
-    const fontFamilyStyle = fontSelected !== "DEFAULT" ? `font-family: '${fontSelected}', sans-serif;` : "";
+    // Ambil kontrol kustomisasi dinamis (jika elemen tersedia di HTML)
+    const fontSelected = document.getElementById("selectFontRapor") ? document.getElementById("selectFontRapor").value : "DEFAULT";
+    const sizeSelected = document.getElementById("selectUkuranFont") ? document.getElementById("selectUkuranFont").value : "DEFAULT";
+    const colorSelected = document.getElementById("selectWarnaAksen") ? document.getElementById("selectWarnaAksen").value : "DEFAULT";
 
-    // 2. Class Warna Garis & Border (Default = Asli bawaan Anda)
-    let clsBorderMain = "border-indigo-400";
-    let clsBorderInner = "border-indigo-300";
-    let clsBorderKop = "border-indigo-950";
-    let clsTextTitle = "text-indigo-950";
-
-    if (garisSelected !== "DEFAULT") {
-        clsBorderMain = garisSelected;
-        clsBorderInner = garisSelected;
-        clsBorderKop = garisSelected.replace("border-", "border-b-4 border-");
-        clsTextTitle = garisSelected.replace("border-", "text-");
+    // Style Font & Ukuran Teks Dynamic via CSS Inline (Aman & Tidak Merusak Tailwind)
+    let extraMainStyle = "";
+    if (fontSelected !== "DEFAULT" && fontSelected !== "") {
+        extraMainStyle += `font-family: '${fontSelected}', sans-serif;`;
+    }
+    if (sizeSelected !== "DEFAULT" && sizeSelected !== "") {
+        extraMainStyle += `font-size: ${sizeSelected};`;
     }
 
-    // 3. Class Warna Header Tabel (Default = Asli bawaan Anda)
-    let clsHeaderBgText = "bg-indigo-100 text-slate-900";
-    let clsAvgBg = "bg-indigo-200/90 text-slate-900";
-
-    if (headerSelected !== "DEFAULT") {
-        clsHeaderBgText = headerSelected;
-        clsAvgBg = "bg-slate-200 text-slate-900 font-bold";
+    // Dynamic Filter Warna (Aman untuk Aksen Tanpa Merubah Class Asli)
+    let filterColorStyle = "";
+    if (colorSelected === "MONOCHROME") {
+        filterColorStyle = "filter: grayscale(100%);";
+    } else if (colorSelected === "SEPIA") {
+        filterColorStyle = "filter: sepia(30%);";
     }
 
-    // Helper mewarnai merah jika nilai < 75
+    // Helper untuk mewarnai merah jika nilai < 75
     const formatNilai = (val, isBold = false) => {
         if (val === null || val === undefined || val === '' || val === '-') return '-';
         const num = parseFloat(val);
@@ -1796,6 +1787,7 @@ function showToast(message, type = "info") {
     const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
     const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
 
+    // Tanggal Rapor Dinamis dari Config
     const tglRapor = masterData.config.TANGGAL_RAPOR || "Jakarta, 30 Oktober 2026";
 
     const walasRow = (masterData.walasPlotting || []).slice(1).find(r => 
@@ -1830,7 +1822,7 @@ function showToast(message, type = "info") {
             });
         });
 
-        // Deduplikasi Universal
+        // DEDUPLIKASI UNIVERSAL MENGGUNAKAN MAPEL_ALIAS
         const mapelMap = new Map();
         filteredNilai.forEach(nItem => {
             let rawCode = String(nItem[3] || "").trim().toUpperCase();
@@ -1847,7 +1839,7 @@ function showToast(message, type = "info") {
             }
         });
 
-        // Pemetaan Urutan DB_Mapel
+        // 1. Buat pemetaan urutan berdasarkan sheet DB_Mapel
         const mapelUrutanMap = new Map();
         if (masterData.mapel && masterData.mapel.length > 1) {
             masterData.mapel.slice(1).forEach(row => {
@@ -1858,7 +1850,10 @@ function showToast(message, type = "info") {
             });
         }
 
+        // 2. Ambil nilai siswa dari mapelMap
         let nilaiSiswaList = Array.from(mapelMap.values());
+
+        // 3. Urutkan berdasarkan nomor urut di DB_Mapel
         nilaiSiswaList.sort((a, b) => {
             let rawCodeA = String(a[3] || "").trim().toUpperCase();
             let rawCodeB = String(b[3] || "").trim().toUpperCase();
@@ -1941,14 +1936,14 @@ function showToast(message, type = "info") {
                 }
 
                 rowsNilaiHtml += `
-                    <tr class="border-b ${clsBorderInner} text-center text-slate-900">
-                        <td class="p-1.5 border-r-2 ${clsBorderInner} font-medium">${i + 1}</td>
-                        <td class="p-1.5 text-left border-r-2 ${clsBorderInner} font-extrabold text-slate-900">${mapelName}</td>
-                        <td class="p-1.5 border-r ${clsBorderInner}">${formatNilai(val1, false)}</td>
-                        <td class="p-1.5 border-r ${clsBorderInner}">${formatNilai(val2, false)}</td>
-                        <td class="p-1.5 border-r ${clsBorderInner}">${formatNilai(val3, false)}</td>
-                        <td class="p-1.5 border-r-2 ${clsBorderInner}">${formatNilai(val4, false)}</td>
-                        <td class="p-1.5 border-r-2 ${clsBorderInner} ${clsAvgBg}">${formatNilai(nItem[9], true)}</td>
+                    <tr class="border-b border-indigo-200 text-center text-slate-900">
+                        <td class="p-1.5 border-r-2 border-indigo-300 font-medium">${i + 1}</td>
+                        <td class="p-1.5 text-left border-r-2 border-indigo-300 font-extrabold text-slate-900">${mapelName}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val1, false)}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val2, false)}</td>
+                        <td class="p-1.5 border-r border-indigo-200">${formatNilai(val3, false)}</td>
+                        <td class="p-1.5 border-r-2 border-indigo-300">${formatNilai(val4, false)}</td>
+                        <td class="p-1.5 border-r-2 border-indigo-300 bg-indigo-50/70">${formatNilai(nItem[9], true)}</td>
                         <td class="p-1 w-12 text-center ${trenClass}">${trenVal}</td>
                     </tr>
                 `;
@@ -1958,9 +1953,9 @@ function showToast(message, type = "info") {
         }
 
         containerPrint.innerHTML += `
-    <div class="rapor-page bg-white p-6 max-w-4xl mx-auto space-y-4 text-slate-800 my-4" style="${fontFamilyStyle}">
+    <div class="rapor-page bg-white p-6 max-w-4xl mx-auto space-y-4 text-slate-800 my-4" style="${extraMainStyle} ${filterColorStyle}">
         <!-- KOP SURAT SEKOLAH -->
-        <div class="flex items-center justify-between ${clsBorderKop} pb-2">
+        <div class="flex items-center justify-between border-b-4 border-indigo-950 pb-2">
             <div class="w-20 h-16 flex items-center justify-center shrink-0 pl-4">
                 <img src="https://i.ibb.co.com/1k5jmRK/lambang-dki-jakarta.png" 
                      alt="Logo Pemprov DKI Jakarta" 
@@ -1968,8 +1963,8 @@ function showToast(message, type = "info") {
             </div>
 
             <div class="text-center flex-1 px-2">
-                <h1 class="text-xs font-black uppercase ${clsTextTitle} tracking-wider">PEMERINTAH PROVINSI DKI JAKARTA</h1>
-                <h2 class="text-xs font-black uppercase ${clsTextTitle} tracking-wider">DINAS PENDIDIKAN</h2>
+                <h1 class="text-xs font-black uppercase text-indigo-950 tracking-wider">PEMERINTAH PROVINSI DKI JAKARTA</h1>
+                <h2 class="text-xs font-black uppercase text-indigo-950 tracking-wider">DINAS PENDIDIKAN</h2>
                 <h3 class="text-base font-black uppercase text-slate-900 tracking-widest mt-0.5">SMA NEGERI 1 JAKARTA</h3>
                 <p class="text-[10px] font-semibold text-slate-600">Jl. Budi Utomo No.7, Pasar Baru, Kec. Sawah Besar, Jakarta Pusat</p>
             </div>
@@ -1979,34 +1974,34 @@ function showToast(message, type = "info") {
 
         <!-- JUDUL RAPOR -->
         <div class="text-center py-0.5">
-            <h3 class="text-sm font-black uppercase ${clsTextTitle} tracking-wider underline">LAPORAN HASIL PENILAIAN TENGAH SEMESTER</h3>
+            <h3 class="text-sm font-black uppercase text-indigo-950 tracking-wider underline">LAPORAN HASIL PENILAIAN TENGAH SEMESTER</h3>
             <p class="text-[11px] font-bold text-slate-600">Tahun Ajaran 2026/2027 - Semester ${semAktif}</p>
         </div>
 
         <!-- BIODATA SISWA RINGKAS -->
         <div class="bg-indigo-50 p-3 rounded-xl border-2 border-indigo-200 grid grid-cols-2 text-xs font-bold gap-y-1 text-slate-800">
-            <div>Nama : <span class="font-extrabold ${clsTextTitle} uppercase">${nama}</span></div>
-            <div>Kelas : <span class="font-extrabold ${clsTextTitle}">${kelas}</span></div>
-            <div>NISN/NIS : <span class="font-extrabold ${clsTextTitle} font-mono">${nisn} / ${nis}</span></div>
-            <div>Semester Aktif : <span class="font-extrabold ${clsTextTitle}">Semester ${semAktif}</span></div>
+            <div>Nama : <span class="font-extrabold text-indigo-950 uppercase">${nama}</span></div>
+            <div>Kelas : <span class="font-extrabold text-indigo-950">${kelas}</span></div>
+            <div>NISN/NIS : <span class="font-extrabold text-indigo-950 font-mono">${nisn} / ${nis}</span></div>
+            <div>Semester Aktif : <span class="font-extrabold text-indigo-950">Semester ${semAktif}</span></div>
         </div>
 
         <!-- TABEL NILAI LENGKAP -->
-        <div class="overflow-hidden rounded-xl border-2 ${clsBorderMain} shadow-sm">
-            <table class="w-full text-left border-collapse ${sizeSelected}">
+        <div class="overflow-hidden rounded-xl border-2 border-indigo-400 shadow-sm">
+            <table class="w-full text-left border-collapse text-xs">
                 <thead>
-                    <tr class="${clsHeaderBgText} font-black uppercase tracking-wider text-[10px] text-center border-b-2 ${clsBorderMain}">
-                        <th class="p-2 w-8 border-r-2 ${clsBorderMain}">No</th>
-                        <th class="p-2 border-r-2 ${clsBorderMain} text-left">Mata Pelajaran</th>
-                        <th class="p-2 w-14 border-r ${clsBorderMain}">${lbl1}</th>
-                        <th class="p-2 w-14 border-r ${clsBorderMain}">${lbl2}</th>
-                        <th class="p-2 w-14 border-r ${clsBorderMain}">${lbl3}</th>
-                        <th class="p-2 w-14 border-r-2 ${clsBorderMain}">${lbl4}</th>
-                        <th class="p-2 w-16 border-r-2 ${clsBorderMain} ${clsAvgBg}">Rata-Rata</th>
+                    <tr class="bg-indigo-100 text-slate-900 font-black uppercase tracking-wider text-[10px] text-center border-b-2 border-indigo-400">
+                        <th class="p-2 w-8 border-r-2 border-indigo-400">No</th>
+                        <th class="p-2 border-r-2 border-indigo-400 text-left">Mata Pelajaran</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl1}</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl2}</th>
+                        <th class="p-2 w-14 border-r border-indigo-400">${lbl3}</th>
+                        <th class="p-2 w-14 border-r-2 border-indigo-400">${lbl4}</th>
+                        <th class="p-2 w-16 border-r-2 border-indigo-400 bg-indigo-200/90 text-slate-900">Rata-Rata</th>
                         <th class="p-2 w-14">Capaian</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y ${clsBorderInner}">
+                <tbody class="divide-y divide-indigo-300">
                     ${rowsNilaiHtml}
                 </tbody>
             </table>
@@ -2015,13 +2010,13 @@ function showToast(message, type = "info") {
         <!-- PRESENSI DAN CATATAN -->
         <div class="grid grid-cols-3 gap-3 text-xs">
             <div class="col-span-1 bg-slate-50 border-2 border-slate-300 p-2.5 rounded-xl space-y-1">
-                <h4 class="font-extrabold ${clsTextTitle} border-b-2 border-slate-300 pb-0.5 uppercase tracking-wider text-[9px]">Ketidakhadiran</h4>
+                <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 uppercase tracking-wider text-[9px]">Ketidakhadiran</h4>
                 <div class="flex justify-between font-bold"><span>Sakit :</span> <span class="font-black">${sakit} hari</span></div>
                 <div class="flex justify-between font-bold"><span>Izin :</span> <span class="font-black">${izin} hari</span></div>
                 <div class="flex justify-between font-bold"><span>Alpa :</span> <span class="font-black">${alpha} hari</span></div>
             </div>
             <div class="col-span-2 bg-slate-50 border-2 border-slate-300 p-2.5 rounded-xl">
-                <h4 class="font-extrabold ${clsTextTitle} border-b-2 border-slate-300 pb-0.5 mb-1 uppercase tracking-wider text-[9px]">Catatan Perkembangan Wali Kelas</h4>
+                <h4 class="font-extrabold text-indigo-950 border-b-2 border-slate-300 pb-0.5 mb-1 uppercase tracking-wider text-[9px]">Catatan Perkembangan Wali Kelas</h4>
                 <p class="italic text-slate-800 leading-snug font-semibold text-[13px]">"${catatan}"</p>
             </div>
         </div>
@@ -2039,7 +2034,7 @@ function showToast(message, type = "info") {
                 <p>${tglRapor}</p>
                 <p>Wali Kelas,</p>
                 <div class="h-20"></div>
-                <p class="font-black ${clsTextTitle} underline">${namaWalasFinal}</p>
+                <p class="font-black text-indigo-950 underline">${namaWalasFinal}</p>
                 <p class="text-slate-600 font-mono">NIP ${nipWalasFinal}</p>
             </div>
         </div>
