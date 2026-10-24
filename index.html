@@ -726,68 +726,63 @@ function showToast(message, type = "info") {
         // NAVIGASI DYNAMIC HAK AKSES
         const btnTabWalas = document.getElementById("btnTabWalas");
         const btnTabCetak = document.getElementById("btnTabCetak");
+        const btnTabLeger = document.getElementById("btnTabLeger");
         const btnTabAdmin = document.getElementById("btnTabAdmin");
 
         if (isAdmin) {
-            btnTabWalas.classList.remove("hidden");
-            btnTabCetak.classList.remove("hidden");
-            btnTabAdmin.classList.remove("hidden");
+            if (btnTabWalas) btnTabWalas.classList.remove("hidden");
+            if (btnTabCetak) btnTabCetak.classList.remove("hidden");
+            if (btnTabLeger) btnTabLeger.classList.remove("hidden");
+            if (btnTabAdmin) btnTabAdmin.classList.remove("hidden");
         } else if (isWaliKelas) {
-            btnTabWalas.classList.remove("hidden");
-            btnTabCetak.classList.remove("hidden");
-            btnTabAdmin.classList.add("hidden");
+            if (btnTabWalas) btnTabWalas.classList.remove("hidden");
+            if (btnTabCetak) btnTabCetak.classList.remove("hidden");
+            if (btnTabLeger) btnTabLeger.classList.remove("hidden");
+            if (btnTabAdmin) btnTabAdmin.classList.add("hidden");
         } else {
-            btnTabWalas.classList.add("hidden");
-            btnTabCetak.classList.add("hidden");
-            btnTabAdmin.classList.add("hidden");
+            if (btnTabWalas) btnTabWalas.classList.add("hidden");
+            if (btnTabCetak) btnTabCetak.classList.add("hidden");
+            if (btnTabLeger) btnTabLeger.classList.add("hidden");
+            if (btnTabAdmin) btnTabAdmin.classList.add("hidden");
         }
 
         // ============================================================
-        // OPTIMASI: PENGISIAN DROPDOWN MENGGUNAKAN BUFFER (SANGAT CEPAT)
+        // PENGISIAN DROPDOWN WALI KELAS NON-ADMIN
+        // ============================================================
+        if (isWaliKelas && !isAdmin) {
+            let htmlKelasWalas = `<option value="">-- Pilih Kelas Binaan --</option>`;
+            
+            myWalasRows.forEach(row => {
+                const kelasBinaan = row[0];
+                if (kelasBinaan) {
+                    htmlKelasWalas += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                }
+            });
+
+            const elWalas = document.getElementById("selectKelasWalas");
+            const elCetak = document.getElementById("selectKelasCetak");
+            const elLeger = document.getElementById("selectKelasEksporLegerWalas");
+
+            if (elWalas) elWalas.innerHTML = htmlKelasWalas;
+            if (elCetak) elCetak.innerHTML = htmlKelasWalas;
+            if (elLeger) elLeger.innerHTML = htmlKelasWalas;
+        }
+
+        // ============================================================
+        // PENGISIAN DROPDOWN UTAMA (ADMIN / GURU)
         // ============================================================
         let htmlMapel = '<option value="">-- Pilih Mapel --</option>';
-        let htmlKelasGuru = '<option value="">-- Pilih Kelas --</option>';
-        let htmlKelasWalas = '<option value="">-- Pilih Kelas --</option>';
-        let htmlKelasCetak = '<option value="">-- Pilih Kelas --</option>';
-        let htmlKelasLeger = '<option value="">-- Pilih Kelas --</option>';
-
-        // Pengisian Kelas Binaan khusus Wali Kelas Non-Admin
-if (isWaliKelas && !isAdmin) {
-    let htmlKelasWalas = `<option value="">-- Pilih Kelas Binaan --</option>`;
-    
-    myWalasRows.forEach(row => {
-        const kelasBinaan = row[0];
-        if (kelasBinaan) {
-            htmlKelasWalas += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+        if (isAdmin) {
+            Object.keys(MASTER_MAPEL_NAME).forEach(code => {
+                htmlMapel += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
+            });
         }
-    });
+        if (selMapel) selMapel.innerHTML = htmlMapel;
 
-    // 1. Tampilkan Tombol Tab khusus Wali Kelas
-    const btnTabWalas = document.getElementById("btnTabWalas");
-    const btnTabCetak = document.getElementById("btnTabCetak");
-    const btnTabLeger = document.getElementById("btnTabLeger");
-
-    if (btnTabWalas) btnTabWalas.classList.remove("hidden");
-    if (btnTabCetak) btnTabCetak.classList.remove("hidden");
-    if (btnTabLeger) btnTabLeger.classList.remove("hidden");
-
-    // 2. Pasang Opsi Kelas ke Dropdown Wali Kelas
-    const elWalas = document.getElementById("selectKelasWalas");
-    const elCetak = document.getElementById("selectKelasCetak");
-    const elLeger = document.getElementById("selectKelasEksporLegerWalas");
-
-    if (elWalas) elWalas.innerHTML = htmlKelasWalas;
-    if (elCetak) elCetak.innerHTML = htmlKelasWalas;
-    if (elLeger) elLeger.innerHTML = htmlKelasWalas;
-}
-
-    // Pasang opsi kelas binaan ke dropdown Wali Kelas
-    document.getElementById("selectKelasWalas").innerHTML = htmlKelasWalas;
-    document.getElementById("selectKelasCetak").innerHTML = htmlKelasWalas;
-    
-    // TAMBAHKAN BARIS INI:
-    const dropdownWalas = document.getElementById("selectKelasEksporLegerWalas");
-    if (dropdownWalas) dropdownWalas.innerHTML = htmlKelasWalas;
+    } catch (error) {
+        console.error("Gagal memuat data awal:", error);
+        showToast("Gagal memuat data dari server!", "error");
+    }
 }
 
         // Percabangan Pengisian Dropdown Utama
