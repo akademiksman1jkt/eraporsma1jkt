@@ -704,6 +704,7 @@ function showToast(message, type = "info") {
         const selKelasWalas = document.getElementById("selectKelasWalas");
         const selKelasCetak = document.getElementById("selectKelasCetak");
         const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger");
+        const selKelasLegerWalas = document.getElementById("selectKelasEksporLegerWalas");
 
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         const isAdmin = String(currentUser.role).toLowerCase() === "admin";
@@ -747,45 +748,30 @@ function showToast(message, type = "info") {
         }
 
         // ============================================================
-        // PENGISIAN DROPDOWN WALI KELAS NON-ADMIN
+        // PENGISIAN BUFFER DROPDOWN UTAMA
         // ============================================================
+        let htmlMapel = '<option value="">-- Pilih Mapel --</option>';
+        let htmlKelasGuru = '<option value="">-- Pilih Kelas --</option>';
+        let htmlKelasWalas = '<option value="">-- Pilih Kelas --</option>';
+        let htmlKelasCetak = '<option value="">-- Pilih Kelas --</option>';
+        let htmlKelasLeger = '<option value="">-- Pilih Kelas --</option>';
+
+        // Pengisian Khusus Wali Kelas Non-Admin
         if (isWaliKelas && !isAdmin) {
-            let htmlKelasWalas = `<option value="">-- Pilih Kelas Binaan --</option>`;
-            
+            let htmlKelasWalasBinaan = `<option value="">-- Pilih Kelas Binaan --</option>`;
             myWalasRows.forEach(row => {
                 const kelasBinaan = row[0];
                 if (kelasBinaan) {
-                    htmlKelasWalas += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                    htmlKelasWalasBinaan += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
                 }
             });
 
-            const elWalas = document.getElementById("selectKelasWalas");
-            const elCetak = document.getElementById("selectKelasCetak");
-            const elLeger = document.getElementById("selectKelasEksporLegerWalas");
-
-            if (elWalas) elWalas.innerHTML = htmlKelasWalas;
-            if (elCetak) elCetak.innerHTML = htmlKelasWalas;
-            if (elLeger) elLeger.innerHTML = htmlKelasWalas;
+            if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalasBinaan;
+            if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasWalasBinaan;
+            if (selKelasLegerWalas) selKelasLegerWalas.innerHTML = htmlKelasWalasBinaan;
         }
 
-        // ============================================================
-        // PENGISIAN DROPDOWN UTAMA (ADMIN / GURU)
-        // ============================================================
-        let htmlMapel = '<option value="">-- Pilih Mapel --</option>';
-        if (isAdmin) {
-            Object.keys(MASTER_MAPEL_NAME).forEach(code => {
-                htmlMapel += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
-            });
-        }
-        if (selMapel) selMapel.innerHTML = htmlMapel;
-
-    } catch (error) {
-        console.error("Gagal memuat data awal:", error);
-        showToast("Gagal memuat data dari server!", "error");
-    }
-}
-
-        // Percabangan Pengisian Dropdown Utama
+        // Percabangan Pengisian Dropdown Utama (Admin / Guru)
         if (isAdmin) {
             Object.keys(MASTER_MAPEL_NAME).forEach(code => {
                 htmlMapel += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
@@ -822,15 +808,17 @@ function showToast(message, type = "info") {
             htmlKelasGuru = '<option value="">-- Pilih Mapel Terlebih Dahulu --</option>';
         }
 
-        // BANJIRKAN KE DOM HANYA 1 KALI (Mencegah Lagging & Freeze)
+        // BANJIRKAN KE DOM (Hanya untuk Admin/Guru)
         if (selMapel) selMapel.innerHTML = htmlMapel;
         if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
-        if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
-        if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
-        if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasLeger;
+        if (isAdmin) {
+            if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
+            if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
+            if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasLeger;
+        }
 
     } catch (err) {
-        console.error(err);
+        console.error("Gagal memuat data awal:", err);
         showToast("Gagal memuat data dari server! Periksa koneksi internet Anda.", "error");
     }
 }
