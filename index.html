@@ -2035,9 +2035,10 @@ function formatNilai(val) {
                 activeBtn.classList.remove("hover:bg-slate-100", "text-slate-600");
             }
         }
-        function eksporLegerNilaiKelas() {
+        function eksporLegerNilaiKelas(kelasParam) {
+    // 1. Ambil kelas dari parameter (Wali Kelas) atau dari dropdown Admin
     const kelasSelect = document.getElementById("selectKelasEksporLeger");
-    const kelas = kelasSelect ? kelasSelect.value : "";
+    const kelas = kelasParam || (kelasSelect ? kelasSelect.value : "");
 
     if (!kelas) {
         showToast("Silakan pilih kelas yang ingin diekspor terlebih dahulu!", "warning");
