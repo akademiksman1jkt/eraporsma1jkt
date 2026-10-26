@@ -2586,7 +2586,6 @@ function prosesDownloadExcelGuruMapel() {
     const semAktif = masterData.config.SEMESTER_AKTIF || "1";
     const mapelName = MASTER_MAPEL_NAME[mapelCode] || mapelCode;
 
-    // Filter daftar nilai siswa berdasarkan Mapel & Semester Aktif
     const listNilai = masterData.inputNilai.filter(r => 
         String(r[3] || "").trim().toUpperCase() === String(mapelCode).trim().toUpperCase() &&
         String(r[4] || "").trim() === String(semAktif).trim()
@@ -2599,21 +2598,27 @@ function prosesDownloadExcelGuruMapel() {
         return;
     }
 
-    const lbl1 = masterData.config.LABEL_COL1 || "Nilai 1";
-    const lbl2 = masterData.config.LABEL_COL2 || "Nilai 2";
-    const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
-    const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
+    const lbl1 = masterData.config.LABEL_COL1 || "TUGAS 1";
+    const lbl2 = masterData.config.LABEL_COL2 || "TUGAS 2";
+    const lbl3 = masterData.config.LABEL_COL3 || "ASH";
+    const lbl4 = masterData.config.LABEL_COL4 || "ASTS";
 
     const isKelasX = String(kelas).trim().toUpperCase().startsWith("X-") || String(kelas).trim().toUpperCase() === "X";
 
+    // 1. STRUKTUR SHEET DENGAN JUDUL KOP DI ATAS (BARIS 2 & 3)
     const dataExcel = [
-        ["NO", "NISN", "NAMA SISWA", "KELAS", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"]
+        [], // Baris 1 kosong
+        [`Rekap Nilai ${mapelName}`], // Baris 2: Judul Mapel
+        [`Kelas ${kelas}`],           // Baris 3: Judul Kelas
+        [], // Baris 4 kosong
+        ["NO", "NISN", "NAMA SISWA", "KELAS", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"] // Baris 5: Header Tabel
     ];
 
-    let rowIdx = 2; // Header di baris 1 Excel, data mulai baris 2
-
     listSiswaKelas.forEach((s, idx) => {
-        const nisn = s[0];
+        // Karena ada KOP (Baris 2 & 3), maka data siswa pertama dimulai pada Baris 6 Excel
+        const rowNum = idx + 6;
+
+        const nisn = String(s[0] || "");
         const nama = s[2];
         const histVal = parseFloat(s[4] || s[5] || 0);
 
@@ -2624,15 +2629,15 @@ function prosesDownloadExcelGuruMapel() {
         const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : "";
         const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : "";
 
-        // RUMUS EXCEL RATA-RATA: Kolom F (Nilai 1) s/d I (Nilai 4)
-        const rumusRataRata = `=IF(COUNT(F${rowIdx}:I${rowIdx})>0, ROUND(AVERAGE(F${rowIdx}:I${rowIdx}), 1), 0)`;
+        // RUMUS EXCEL RATA-RATA (KOLOM J): Menghitung Nilai F s/d I
+        const strRumusRataRata = `IF(COUNT(F${rowNum}:I${rowNum})>0, ROUND(AVERAGE(F${rowNum}:I${rowNum}), 1), 0)`;
 
-        // RUMUS EXCEL TREN DINAMIS
-        let rumusTren = "";
+        // RUMUS EXCEL TREN (KOLOM K): Menggunakan Simbol Visual (✔ / ❌) atau Tren Angka
+        let strRumusTren = "";
         if (isKelasX) {
-            rumusTren = `=IF(J${rowIdx}=0, "-", IF(OR(MIN(F${rowIdx}:I${rowIdx})<75, J${rowIdx}<75), "❌", "✔"))`;
+            strRumusTren = `IF(J${rowNum}=0, "-", IF(OR(MIN(F${rowNum}:I${rowNum})<75, J${rowNum}<75), "❌", "✔"))`;
         } else {
-            rumusTren = `=IF(OR(J${rowIdx}=0, E${rowIdx}=0), "-", IF((J${rowIdx}-E${rowIdx})>0, CONCATENATE("▲ +", TEXT(J${rowIdx}-E${rowIdx}, "0.0")), IF((J${rowIdx}-E${rowIdx})<0, CONCATENATE("▼ ", TEXT(J${rowIdx}-E${rowIdx}, "0.0")), "▬ 0.0")))`;
+            strRumusTren = `IF(OR(J${rowNum}=0, E${rowNum}=0), "-", IF((J${rowNum}-E${rowNum})>0, CONCATENATE("▲ +", TEXT(J${rowNum}-E${rowNum}, "0.0")), IF((J${rowNum}-E${rowNum})<0, CONCATENATE("▼ ", TEXT(J${rowNum}-E${rowNum}, "0.0")), "▬ 0.0")))`;
         }
 
         dataExcel.push([
@@ -2645,18 +2650,26 @@ function prosesDownloadExcelGuruMapel() {
             val2,
             val3,
             val4,
-            rumusRataRata,
-            rumusTren
+            { t: 'n', f: strRumusRataRata }, // Kolom J (RATA-RATA)
+            { t: 's', f: strRumusTren }     // Kolom K (TREN)
         ]);
-
-        rowIdx++;
     });
 
     const ws = XLSX.utils.aoa_to_sheet(dataExcel);
+
+    // 2. LEBAR KOLOM SESUAI GAMBAR DOKUMEN PREVIEW
     ws['!cols'] = [
-        { wch: 5 }, { wch: 16 }, { wch: 32 }, { wch: 10 }, 
-        { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, 
-        { wch: 10 }, { wch: 14 }, { wch: 16 }
+        { wch: 6 },  // A: NO
+        { wch: 16 }, // B: NISN
+        { wch: 35 }, // C: NAMA SISWA
+        { wch: 10 }, // D: KELAS
+        { wch: 16 }, // E: HISTORI RAPOR
+        { wch: 11 }, // F: TUGAS 1 / TP1
+        { wch: 11 }, // G: TUGAS 2 / TP2
+        { wch: 10 }, // H: ASH / Nilai 3
+        { wch: 10 }, // I: ASTS / Nilai 4
+        { wch: 14 }, // J: RATA-RATA
+        { wch: 10 }  // K: TREN
     ];
 
     const wb = XLSX.utils.book_new();
