@@ -2550,47 +2550,43 @@ function onMapelDownloadChanged() {
     let htmlOptions = '<option value="">-- Pilih Kelas --</option>';
 
     if (isAdmin) {
-        // ADMIN: Ambil seluruh daftar kelas yang ada dari leger (indeks kolom ke-3 adalah Kelas)
+        // ADMIN: Ambil seluruh daftar kelas yang ada di leger
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
     } else {
-        // GURU MAPEL: Filter plotting kelas dari masterData.guru
+        // GURU MAPEL: Filter plotting kelas berdasarkan DB_Guru
         const curUser = String(currentUser.username || "").trim().toLowerCase();
-        
-        // Filter baris guru sesuai NIP/Username dan Mapel yang dipilih
-        const myGuruRows = (masterData.guru || []).filter(r => {
-            const isUserMatch = String(r[0] || "").trim().toLowerCase() === curUser;
-            const mapelStr = String(r[3] || "").trim();
-            const isMapelMatch = mapelStr.split(",").map(m => m.trim().toUpperCase()).includes(String(mapelCode).trim().toUpperCase());
-            return isUserMatch && isMapelMatch;
-        });
+        const curNama = String(currentUser.namaGuru || "").trim().toLowerCase();
 
         const kelasSet = new Set();
-        myGuruRows.forEach(r => {
-            // Indeks r[2] berisi daftar Kelas Target (misal: "X-1, X-2")
-            const kStr = String(r[2] || "").trim();
-            if (kStr) {
-                kStr.split(",").forEach(k => {
+
+        (masterData.guru || []).slice(1).forEach(r => {
+            const usernameGuru = String(r[0] || "").trim().toLowerCase(); // Kolom A
+            const namaGuru = String(r[2] || "").trim().toLowerCase();     // Kolom C
+            const mapelStr = String(r[3] || "").trim().toUpperCase();     // Kolom D (MAPEL_PLOTTING)
+            const kelasStr = String(r[4] || "").trim();                   // Kolom E (KELAS_PLOTTING)
+
+            // Cek apakah akun yang login cocok dengan baris ini
+            const isUserMatch = (usernameGuru && usernameGuru === curUser) || (namaGuru && (namaGuru === curNama || namaGuru.includes(curNama)));
+
+            // Cek apakah kode mapel cocok
+            const isMapelMatch = mapelStr.split(",").map(m => m.trim()).includes(String(mapelCode).trim().toUpperCase());
+
+            if (isUserMatch && isMapelMatch && kelasStr) {
+                // Ambil daftar kelas dari Kolom E (KELAS_PLOTTING)
+                kelasStr.split(",").forEach(k => {
                     const cleanK = k.trim();
                     if (cleanK) kelasSet.add(cleanK);
                 });
             }
         });
 
-        // Fallback jika tidak ditemukan di masterData.guru, ambil dari currentUser.kelasPlotting
-        if (kelasSet.size === 0 && currentUser.kelasPlotting) {
-            String(currentUser.kelasPlotting).split(",").forEach(k => {
-                const cleanK = k.trim();
-                if (cleanK) kelasSet.add(cleanK);
-            });
-        }
-
-        if (kelasSet.size > 0) {
-            kelasSet.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
-        } else {
-            // Jika tidak ada plotting khusus, tampilkan semua kelas sebagai cadangan
+        // Fallback jika plotting di DB_Guru belum terisi
+        if (kelasSet.size === 0) {
             const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
             allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
+        } else {
+            Array.from(kelasSet).sort().forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
         }
     }
 
