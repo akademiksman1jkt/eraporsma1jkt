@@ -2694,7 +2694,7 @@ function prosesDownloadExcelGuruMapel() {
 
     const colLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
 
-    // 2. STYLING HEADER TABEL (BARIS 5)
+    // 2. STYLING HEADER TABEL (BARIS 5) -> BIRU SOFT (B4D5E5)
     colLetters.forEach(col => {
         const cellRef = `${col}5`;
         if (ws[cellRef]) {
@@ -2702,13 +2702,12 @@ function prosesDownloadExcelGuruMapel() {
                 font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "000000" } },
                 fill: { fgColor: { rgb: "B4D5E5" } },
                 alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                border: borderThin,
-                protection: { locked: col === "E" } // Hanya Header E yang terkunci
+                border: borderThin
             };
         }
     });
 
-    // 3. STYLING SEL DATA SISWA DAN SETTING HANYA KOLOM E YANG TERKUNCI
+    // 3. STYLING SEL DATA SISWA
     listSiswaKelas.forEach((s, idx) => {
         const r = idx + 6;
         
@@ -2736,10 +2735,6 @@ function prosesDownloadExcelGuruMapel() {
             if (!ws[cellRef]) return;
 
             const isLeftAlign = (col === "C");
-            
-            // HANYA KOLOM E (HISTORI RAPOR) YANG TERKUNCI (locked: true)
-            // KOLOM LAINNYA BEBAS DIEDIT (locked: false)
-            const isLockedColumn = (col === "E");
 
             ws[cellRef].s = {
                 font: { name: "Calibri", sz: 11 },
@@ -2747,13 +2742,10 @@ function prosesDownloadExcelGuruMapel() {
                     horizontal: isLeftAlign ? "left" : "center", 
                     vertical: "center" 
                 },
-                border: borderThin,
-                protection: {
-                    locked: isLockedColumn
-                }
+                border: borderThin
             };
 
-            // Warna Biru Soft untuk Kolom E (HISTORI RAPOR)
+            // Warna Biru Soft khusus untuk Kolom E (HISTORI RAPOR)
             if (col === "E") {
                 ws[cellRef].s.fill = { fgColor: { rgb: "B4D5E5" } };
             }
@@ -2773,12 +2765,21 @@ function prosesDownloadExcelGuruMapel() {
         });
     });
 
-    // 4. AKTIFKAN PROTEKSI SHEET EXCEL
-    ws['!protect'] = {
-        password: '',
-        selectLockedCells: true,
-        selectUnlockedCells: true
-    };
+    // 4. PASANG VALIDASI PERINGATAN KETAT PADA KOLOM HISTORI RAPOR (E6 DKK)
+    const startRow = 6;
+    const endRow = listSiswaKelas.length + 5;
+    
+    if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+    ws['!dataValidation'].push({
+        sqref: `E${startRow}:E${endRow}`,
+        type: 'custom',
+        formula1: `E${startRow}=E${startRow}`,
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'stop', // Jenis 'stop' mencegah pengubahan data secara total jika tidak valid
+        errorTitle: 'Kolom Terkunci!',
+        error: 'Nilai Histori Rapor diambil langsung dari Leger Master. Kolom ini tidak boleh diubah.'
+    });
 
     // LEBAR KOLOM EXCEL
     ws['!cols'] = [
