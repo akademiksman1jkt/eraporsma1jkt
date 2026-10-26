@@ -2683,7 +2683,7 @@ function prosesDownloadExcelGuruMapel() {
 
     const ws = XLSX.utils.aoa_to_sheet(dataExcel);
 
-    // DEFINISI BORDER TIPIS HITAM
+    // BORDER TIPIS HITAM
     const borderThin = {
         top: { style: "thin", color: { rgb: "000000" } },
         bottom: { style: "thin", color: { rgb: "000000" } },
@@ -2748,13 +2748,12 @@ function prosesDownloadExcelGuruMapel() {
                 border: borderThin
             };
 
-            // WARNA WARNI KHUSUS:
-            // - Kolom E (HISTORI RAPOR): Warna Biru Soft (B4D5E5)
+            // WARNA BIRU SOFT UNTUK KOLOM E (HISTORI RAPOR)
             if (col === "E") {
                 ws[cellRef].s.fill = { fgColor: { rgb: "B4D5E5" } };
             }
 
-            // - Kolom J (RATA-RATA) & K (TREN): Hijau/Merah Soft
+            // WARNA HIJAU/MERAH SOFT UNTUK KOLOM J & K
             if (col === "J" || col === "K") {
                 ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
                 if (col === "K") {
@@ -2767,15 +2766,22 @@ function prosesDownloadExcelGuruMapel() {
                 }
             }
         });
+    });
 
-        // PERINGATAN HOVER/COMMENT PADA KOLOM HISTORI RAPOR (KOLOM E)
-        const cellE = ws[`E${r}`];
-        if (cellE) {
-            cellE.c = [{
-                t: "PERINGATAN: Nilai Histori Rapor bersumber langsung dari Leger Master. Harap berhati-hati saat mengubah angka ini.",
-                hidden: true
-            }];
-        }
+    // 4. MEMASANG POP-UP PERINGATAN DIALOG (DATA VALIDATION WARNING ALERT)
+    const startRow = 6;
+    const endRow = listSiswaKelas.length + 5;
+    
+    if (!ws['!dataValidation']) ws['!dataValidation'] = [];
+    ws['!dataValidation'].push({
+        sqref: `E${startRow}:E${endRow}`, // Diberlakukan untuk seluruh sel kolom HISTORI RAPOR
+        type: 'custom',
+        operator: 'equal',
+        allowBlank: true,
+        showErrorMessage: true,
+        errorStyle: 'warning', // Menampilkan Dialog Warning dengan pilihan Yes / No
+        errorTitle: 'Peringatan Perubahan Data!',
+        error: 'Nilai Histori Rapor bersumber dari Leger Master. Apakah Anda yakin ingin mengganti angka ini?'
     });
 
     // LEBAR KOLOM EXCEL
