@@ -2550,21 +2550,45 @@ function onMapelDownloadChanged() {
     let htmlOptions = '<option value="">-- Pilih Kelas --</option>';
 
     if (isAdmin) {
+        // ADMIN: Ambil seluruh daftar kelas yang ada dari leger (indeks kolom ke-3 adalah Kelas)
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
     } else {
+        // GURU MAPEL: Filter plotting kelas dari masterData.guru
         const curUser = String(currentUser.username || "").trim().toLowerCase();
-        const myGuruRows = (masterData.guru || []).filter(r => String(r[0] || "").trim().toLowerCase() === curUser && String(r[3] || "").includes(mapelCode));
         
+        // Filter baris guru sesuai NIP/Username dan Mapel yang dipilih
+        const myGuruRows = (masterData.guru || []).filter(r => {
+            const isUserMatch = String(r[0] || "").trim().toLowerCase() === curUser;
+            const mapelStr = String(r[3] || "").trim();
+            const isMapelMatch = mapelStr.split(",").map(m => m.trim().toUpperCase()).includes(String(mapelCode).trim().toUpperCase());
+            return isUserMatch && isMapelMatch;
+        });
+
         const kelasSet = new Set();
         myGuruRows.forEach(r => {
+            // Indeks r[2] berisi daftar Kelas Target (misal: "X-1, X-2")
             const kStr = String(r[2] || "").trim();
-            if (kStr) kStr.split(",").forEach(k => kelasSet.add(k.trim()));
+            if (kStr) {
+                kStr.split(",").forEach(k => {
+                    const cleanK = k.trim();
+                    if (cleanK) kelasSet.add(cleanK);
+                });
+            }
         });
+
+        // Fallback jika tidak ditemukan di masterData.guru, ambil dari currentUser.kelasPlotting
+        if (kelasSet.size === 0 && currentUser.kelasPlotting) {
+            String(currentUser.kelasPlotting).split(",").forEach(k => {
+                const cleanK = k.trim();
+                if (cleanK) kelasSet.add(cleanK);
+            });
+        }
 
         if (kelasSet.size > 0) {
             kelasSet.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
         } else {
+            // Jika tidak ada plotting khusus, tampilkan semua kelas sebagai cadangan
             const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
             allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
         }
