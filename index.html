@@ -2625,7 +2625,7 @@ function prosesDownloadExcelGuruMapel() {
 
     const isKelasX = String(kelas).trim().toUpperCase().startsWith("X-") || String(kelas).trim().toUpperCase() === "X";
 
-    // 1. DATA ARRAY TABEL (KOLOM E DIISI PERINGKAT & ELIGIBLE 40%)
+    // 1. DATA ARRAY TABEL (12 KOLOM)
     const dataExcel = [
         [],
         [`Rekap Nilai ${mapelName}`],
@@ -2634,19 +2634,23 @@ function prosesDownloadExcelGuruMapel() {
         ["NO", "NISN", "NAMA SISWA", "KELAS", "PERINGKAT ANGKATAN", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"]
     ];
 
-    const totalSiswa = listSiswaKelas.length;
-    const startRow = 6;
-    const endRow = startRow + totalSiswa - 1;
-
-    // HITUNG KUOTA ELIGIBLE 40% ANGKATAN/KELAS
-    const kuotaEligible = Math.ceil(totalSiswa * 0.4);
+    const totalSiswaSatuAngkatan = masterData.leger.slice(1).length;
+    const kuotaEligible = Math.ceil(totalSiswaSatuAngkatan * 0.4);
 
     listSiswaKelas.forEach((s, idx) => {
-        const rowNum = idx + startRow;
-        const nisn = String(s[0] || "");
+        const rowNum = idx + 6;
+        const nisn = String(s[0] || "").trim();
         const nama = s[2];
 
-        // LOGIKA AMBIL NILAI RAPOR TERAKHIR (BULAT)
+        // A. AMBIL RANK ANGKATAN DANGELAR STATUS ELIGIBLE DARI KOLOM F DATABASE_WEB (s[5])
+        const rankVal = parseInt(s[5]) || 0;
+        let rankText = "-";
+        if (rankVal > 0) {
+            const statusEligible = rankVal <= kuotaEligible ? " (Eligible)" : " (Reguler)";
+            rankText = `${rankVal}${statusEligible}`;
+        }
+
+        // B. LOGIKA AMBIL NILAI RAPOR TERAKHIR (BULAT) DARI LEGER
         let histVal = 0;
         for (let colIdx = 8; colIdx >= 4; colIdx--) {
             const val = parseFloat(s[colIdx]);
@@ -2656,15 +2660,12 @@ function prosesDownloadExcelGuruMapel() {
             }
         }
 
-        const rowNilai = listNilai.find(r => String(r[0]).trim() === String(nisn).trim());
+        const rowNilai = listNilai.find(r => String(r[0]).trim() === nisn);
 
         const val1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : 0;
         const val2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : 0;
         const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
         const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : 0;
-
-        // RUMUS PERINGATAN (KUOTA 40% TERATAS = ELIGIBLE)
-        const strRumusRank = `IF(K${rowNum}>0, CONCATENATE(RANK(K${rowNum}, $K$${startRow}:$K$${endRow}), IF(RANK(K${rowNum}, $K$${startRow}:$K$${endRow})<=${kuotaEligible}, " (Eligible)", " (Reguler)")), "-")`;
 
         const strRumusRataRata = `IF(COUNT(G${rowNum}:J${rowNum})>0, ROUND(AVERAGE(G${rowNum}:J${rowNum}), 1), 0)`;
         
@@ -2680,14 +2681,14 @@ function prosesDownloadExcelGuruMapel() {
             nisn,
             nama,
             kelas,
-            { t: 's', f: strRumusRank },     // Kolom E (Peringkat & Eligible 40%)
-            histVal,                        // Kolom F (Histori Rapor - Terkunci)
-            val1,                           // Kolom G (TUGAS 1)
-            val2,                           // Kolom H (TUGAS 2)
-            val3,                           // Kolom I (ASH)
-            val4,                           // Kolom J (ASTS)
-            { t: 'n', f: strRumusRataRata }, // Kolom K (RATA-RATA)
-            { t: 's', f: strRumusTren }     // Kolom L (TREN)
+            rankText,                       // Kolom E: Ambil dari Kolom F Database_Web (s[5])
+            histVal,                        // Kolom F: Histori Rapor
+            val1,                           // Kolom G: TUGAS 1
+            val2,                           // Kolom H: TUGAS 2
+            val3,                           // Kolom I: ASH
+            val4,                           // Kolom J: ASTS
+            { t: 'n', f: strRumusRataRata }, // Kolom K: RATA-RATA
+            { t: 's', f: strRumusTren }     // Kolom L: TREN
         ]);
     });
 
@@ -2705,7 +2706,7 @@ function prosesDownloadExcelGuruMapel() {
 
     const colLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
-    // 2. STYLING HEADER TABEL (BARIS 5)
+    // 2. STYLING HEADER TABEL (BARIS 5) -> BIRU SOFT (B4D5E5)
     colLetters.forEach(col => {
         const cellRef = `${col}5`;
         if (ws[cellRef]) {
@@ -2713,18 +2714,17 @@ function prosesDownloadExcelGuruMapel() {
                 font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "000000" } },
                 fill: { fgColor: { rgb: "B4D5E5" } },
                 alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                border: borderThin,
-                protection: { locked: col === "F" }
+                border: borderThin
             };
         }
     });
 
-    // 3. STYLING SEL DATA SISWA
+    // 3. STYLING SEL DATA SISWA DAN PEWARNAAN
     listSiswaKelas.forEach((s, idx) => {
-        const r = idx + startRow;
+        const r = idx + 6;
         
-        const nisn = String(s[0] || "");
-        const rowNilai = listNilai.find(rn => String(rn[0]).trim() === String(nisn).trim());
+        const nisn = String(s[0] || "").trim();
+        const rowNilai = listNilai.find(rn => String(rn[0]).trim() === nisn);
         const v1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : 0;
         const v2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : 0;
         const v3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
@@ -2747,7 +2747,6 @@ function prosesDownloadExcelGuruMapel() {
             if (!ws[cellRef]) return;
 
             const isLeftAlign = (col === "C");
-            const isColumnF = (col === "F");
 
             ws[cellRef].s = {
                 font: { name: "Calibri", sz: 11 },
@@ -2755,24 +2754,21 @@ function prosesDownloadExcelGuruMapel() {
                     horizontal: isLeftAlign ? "left" : "center", 
                     vertical: "center" 
                 },
-                border: borderThin,
-                protection: {
-                    locked: isColumnF // Hanya Kolom F (Histori Rapor) yang dikunci
-                }
+                border: borderThin
             };
 
-            // Warna Kuning Soft untuk Kolom PERINGKAT (Kolom E)
+            // Warna Kuning Soft untuk PERINGKAT ANGKATAN (Kolom E)
             if (col === "E") {
                 ws[cellRef].s.font = { name: "Calibri", sz: 11, bold: true, color: { rgb: "1F497D" } };
                 ws[cellRef].s.fill = { fgColor: { rgb: "FFF2CC" } };
             }
 
-            // Warna Biru Soft untuk Kolom HISTORI RAPOR (Kolom F)
-            if (isColumnF) {
+            // Warna Biru Soft untuk HISTORI RAPOR (Kolom F)
+            if (col === "F") {
                 ws[cellRef].s.fill = { fgColor: { rgb: "B4D5E5" } };
             }
 
-            // Warna Hijau/Merah Soft untuk Kolom RATA-RATA & TREN (K & L)
+            // Warna Hijau/Merah Soft untuk RATA-RATA & TREN (K & L)
             if (col === "K" || col === "L") {
                 ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
                 if (col === "L") {
@@ -2787,30 +2783,14 @@ function prosesDownloadExcelGuruMapel() {
         });
     });
 
-    // 4. KONFIGURASI PROTEKSI EXCEL
-    ws['!protect'] = {
-        password: "",
-        selectLockedCells: true,
-        selectUnlockedCells: true,
-        formatCells: true,
-        formatColumns: true,
-        formatRows: true,
-        insertColumns: true,
-        insertRows: true,
-        deleteColumns: true,
-        deleteRows: true,
-        sort: true,
-        autoFilter: true
-    };
-
     // LEBAR KOLOM EXCEL
     ws['!cols'] = [
         { wch: 6 },  // A: NO
         { wch: 16 }, // B: NISN
         { wch: 35 }, // C: NAMA SISWA
         { wch: 10 }, // D: KELAS
-        { wch: 22 }, // E: PERINGKAT ANGKATAN (Eligible 40%)
-        { wch: 16 }, // F: HISTORI RAPOR (Terkunci)
+        { wch: 22 }, // E: PERINGKAT ANGKATAN (Eligible / Reguler)
+        { wch: 16 }, // F: HISTORI RAPOR
         { wch: 11 }, // G: TUGAS 1
         { wch: 11 }, // H: TUGAS 2
         { wch: 10 }, // I: ASH
@@ -2819,6 +2799,7 @@ function prosesDownloadExcelGuruMapel() {
         { wch: 10 }  // L: TREN
     ];
 
+    // CATATAN: ws['!protect'] DIHAPUS AGAR EXCEL TIDAK TERKUNCI TOTAL DUA KALI
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Nilai ${kelas}`);
 
