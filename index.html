@@ -2625,7 +2625,15 @@ function prosesDownloadExcelGuruMapel() {
 
     const isKelasX = String(kelas).trim().toUpperCase().startsWith("X-") || String(kelas).trim().toUpperCase() === "X";
 
-    // 1. DATA ARRAY TABEL (12 KOLOM)
+    // 1. HITUNG KUOTA 40% ELIGIBLE DARI TOTAL SISWA SATU ANGKATAN (MISAL: XII) DARI LEGER
+    const prefixKelas = String(kelas).trim().split("-")[0].toUpperCase(); // Mengambil "XII", "XI", atau "X"
+    const totalSiswaSatuAngkatan = masterData.leger.slice(1).filter(r => 
+        String(r[3] || "").trim().toUpperCase().startsWith(prefixKelas)
+    ).length;
+
+    const kuotaEligible = Math.ceil((totalSiswaSatuAngkatan || listSiswaKelas.length) * 0.4);
+
+    // 2. DATA ARRAY DENGAN TITLE KOP & HEADER TABEL
     const dataExcel = [
         [],
         [`Rekap Nilai ${mapelName}`],
@@ -2634,23 +2642,20 @@ function prosesDownloadExcelGuruMapel() {
         ["NO", "NISN", "NAMA SISWA", "KELAS", "PERINGKAT ANGKATAN", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"]
     ];
 
-    const totalSiswaSatuAngkatan = masterData.leger.slice(1).length;
-    const kuotaEligible = Math.ceil(totalSiswaSatuAngkatan * 0.4);
-
     listSiswaKelas.forEach((s, idx) => {
-        const rowNum = idx + 6;
+        const rowNum = idx + 6; // Data siswa dimulai pada Baris 6
         const nisn = String(s[0] || "").trim();
         const nama = s[2];
 
-        // A. AMBIL RANK ANGKATAN DANGELAR STATUS ELIGIBLE DARI KOLOM F DATABASE_WEB (s[5])
+        // A. PERINGKAT ANGKATAN DARI KOLOM F (s[5]) DATABASE_WEB / LEGER
         const rankVal = parseInt(s[5]) || 0;
         let rankText = "-";
         if (rankVal > 0) {
-            const statusEligible = rankVal <= kuotaEligible ? " (Eligible)" : " (Reguler)";
-            rankText = `${rankVal}${statusEligible}`;
+            const isEligible = rankVal <= kuotaEligible;
+            rankText = `${rankVal}${isEligible ? " (Eligible)" : " (Reguler)"}`;
         }
 
-        // B. LOGIKA AMBIL NILAI RAPOR TERAKHIR (BULAT) DARI LEGER
+        // B. LOGIKA PENARIKAN NILAI RAPOR TERAKHIR (BULAT)
         let histVal = 0;
         for (let colIdx = 8; colIdx >= 4; colIdx--) {
             const val = parseFloat(s[colIdx]);
@@ -2667,6 +2672,7 @@ function prosesDownloadExcelGuruMapel() {
         const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
         const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : 0;
 
+        // RUMUS FORMULA EXCEL NATIVE
         const strRumusRataRata = `IF(COUNT(G${rowNum}:J${rowNum})>0, ROUND(AVERAGE(G${rowNum}:J${rowNum}), 1), 0)`;
         
         let strRumusTren = "";
@@ -2681,7 +2687,7 @@ function prosesDownloadExcelGuruMapel() {
             nisn,
             nama,
             kelas,
-            rankText,                       // Kolom E: Ambil dari Kolom F Database_Web (s[5])
+            rankText,                       // Kolom E: Peringkat Angkatan & Status (Eligible/Reguler)
             histVal,                        // Kolom F: Histori Rapor
             val1,                           // Kolom G: TUGAS 1
             val2,                           // Kolom H: TUGAS 2
@@ -2694,6 +2700,7 @@ function prosesDownloadExcelGuruMapel() {
 
     const ws = XLSX.utils.aoa_to_sheet(dataExcel);
 
+    // DEFINISI BORDER TIPIS HITAM
     const borderThin = {
         top: { style: "thin", color: { rgb: "000000" } },
         bottom: { style: "thin", color: { rgb: "000000" } },
@@ -2701,12 +2708,13 @@ function prosesDownloadExcelGuruMapel() {
         right: { style: "thin", color: { rgb: "000000" } }
     };
 
+    // Styling Judul KOP (Baris 2 & 3)
     if (ws["A2"]) ws["A2"].s = { font: { name: "Calibri", sz: 14, bold: true } };
     if (ws["A3"]) ws["A3"].s = { font: { name: "Calibri", sz: 12, bold: true } };
 
     const colLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"];
 
-    // 2. STYLING HEADER TABEL (BARIS 5) -> BIRU SOFT (B4D5E5)
+    // 3. STYLING HEADER TABEL (BARIS 5) -> BIRU SOFT (B4D5E5)
     colLetters.forEach(col => {
         const cellRef = `${col}5`;
         if (ws[cellRef]) {
@@ -2719,7 +2727,7 @@ function prosesDownloadExcelGuruMapel() {
         }
     });
 
-    // 3. STYLING SEL DATA SISWA DAN PEWARNAAN
+    // 4. STYLING SEL DATA SISWA DAN PEWARNAAN
     listSiswaKelas.forEach((s, idx) => {
         const r = idx + 6;
         
@@ -2757,7 +2765,7 @@ function prosesDownloadExcelGuruMapel() {
                 border: borderThin
             };
 
-            // Warna Kuning Soft untuk PERINGKAT ANGKATAN (Kolom E)
+            // Warna Kuning/Emas Soft untuk PERINGKAT ANGKATAN (Kolom E)
             if (col === "E") {
                 ws[cellRef].s.font = { name: "Calibri", sz: 11, bold: true, color: { rgb: "1F497D" } };
                 ws[cellRef].s.fill = { fgColor: { rgb: "FFF2CC" } };
@@ -2789,7 +2797,7 @@ function prosesDownloadExcelGuruMapel() {
         { wch: 16 }, // B: NISN
         { wch: 35 }, // C: NAMA SISWA
         { wch: 10 }, // D: KELAS
-        { wch: 22 }, // E: PERINGKAT ANGKATAN (Eligible / Reguler)
+        { wch: 22 }, // E: PERINGKAT ANGKATAN (Eligible 40%)
         { wch: 16 }, // F: HISTORI RAPOR
         { wch: 11 }, // G: TUGAS 1
         { wch: 11 }, // H: TUGAS 2
@@ -2799,7 +2807,6 @@ function prosesDownloadExcelGuruMapel() {
         { wch: 10 }  // L: TREN
     ];
 
-    // CATATAN: ws['!protect'] DIHAPUS AGAR EXCEL TIDAK TERKUNCI TOTAL DUA KALI
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, `Nilai ${kelas}`);
 
