@@ -2618,7 +2618,16 @@ function prosesDownloadExcelGuruMapel() {
         const rowNum = idx + 6; // Data siswa dimulai pada Baris 6
         const nisn = String(s[0] || "");
         const nama = s[2];
-        const histVal = parseFloat(s[4] || s[5] || 0);
+
+        // LOGIKA PENARIKAN NILAI RAPOR TERAKHIR (DARI KANAN KE KIRI)
+        let histVal = 0;
+        for (let colIdx = 8; colIdx >= 4; colIdx--) {
+            const val = parseFloat(s[colIdx]);
+            if (!isNaN(val) && val > 0) {
+                histVal = Math.round(val); // Ambil nilai bulat dari semester terakhir yang ada
+                break;
+            }
+        }
 
         const rowNilai = listNilai.find(r => String(r[0]).trim() === String(nisn).trim());
 
@@ -2682,17 +2691,29 @@ function prosesDownloadExcelGuruMapel() {
     });
 
     // 3. STYLING SEL DATA SISWA (BARIS 6 DKK)
-    const totalRows = listSiswaKelas.length + 5;
-    for (let r = 6; r <= totalRows; r++) {
-        // Ambil nilai tugas untuk menentukan warna kelulusan
-        const valF = (ws[`F${r}`] && typeof ws[`F${r}`].v === 'number') ? ws[`F${r}`].v : 0;
-        const valG = (ws[`G${r}`] && typeof ws[`G${r}`].v === 'number') ? ws[`G${r}`].v : 0;
-        const valH = (ws[`H${r}`] && typeof ws[`H${r}`].v === 'number') ? ws[`H${r}`].v : 0;
-        const valI = (ws[`I${r}`] && typeof ws[`I${r}`].v === 'number') ? ws[`I${r}`].v : 0;
+    listSiswaKelas.forEach((s, idx) => {
+        const r = idx + 6;
+        
+        // Ambil nilai dari array lokal untuk menentukan status kelulusan warna
+        const nisn = String(s[0] || "");
+        const rowNilai = listNilai.find(rn => String(rn[0]).trim() === String(nisn).trim());
+        const v1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : 0;
+        const v2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : 0;
+        const v3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
+        const v4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : 0;
 
-        const vals = [valF, valG, valH, valI];
+        const vals = [v1, v2, v3, v4];
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-        const isPass = avg >= 75 && vals.every(v => v >= 75);
+
+        // Ambil histVal lagi untuk evaluasi kelas XI
+        let histVal = 0;
+        for (let colIdx = 8; colIdx >= 4; colIdx--) {
+            const val = parseFloat(s[colIdx]);
+            if (!isNaN(val) && val > 0) { histVal = Math.round(val); break; }
+        }
+
+        // Cek Kelulusan Warna: Kelas X (KKM >= 75), Kelas XI/XII (Rata-rata >= Histori Rapor)
+        const isPass = isKelasX ? (avg >= 75 && vals.every(v => v >= 75)) : (avg >= histVal);
 
         // Warna Sel Rata-Rata & Tren: Hijau Soft (D9EAD3) / Merah Soft (F4CCCC)
         const rowBgColor = isPass ? "D9EAD3" : "F4CCCC";
@@ -2701,7 +2722,6 @@ function prosesDownloadExcelGuruMapel() {
             const cellRef = `${col}${r}`;
             if (!ws[cellRef]) return;
 
-            // PENGATURAN ALIGNMENT (NAMA SISWA [C] RATA KIRI, KELAS/NILAI/TREN/RATA-RATA RATA TENGAH)
             const isLeftAlign = (col === "C");
             
             ws[cellRef].s = {
@@ -2713,34 +2733,34 @@ function prosesDownloadExcelGuruMapel() {
                 border: borderThin
             };
 
-            // Beri warna latar khusus pada Kolom J (RATA-RATA) & K (TREN)
+            // Khusus Kolom J (RATA-RATA) & K (TREN) diberi warna latar
             if (col === "J" || col === "K") {
                 ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
                 if (col === "K") {
                     ws[cellRef].s.font = { 
                         name: "Calibri", 
-                        sz: 12, 
+                        sz: 11, 
                         bold: true, 
                         color: { rgb: isPass ? "0070C0" : "C00000" } 
                     };
                 }
             }
         });
-    }
+    });
 
     // LEBAR KOLOM EXCEL
     ws['!cols'] = [
-        { wch: 6 },  // A: NO (Rata Tengah)
-        { wch: 16 }, // B: NISN (Rata Tengah)
-        { wch: 35 }, // C: NAMA SISWA (Rata Kiri)
-        { wch: 10 }, // D: KELAS (Rata Tengah)
-        { wch: 16 }, // E: HISTORI RAPOR (Rata Tengah)
-        { wch: 11 }, // F: TUGAS 1 (Rata Tengah)
-        { wch: 11 }, // G: TUGAS 2 (Rata Tengah)
-        { wch: 10 }, // H: ASH (Rata Tengah)
-        { wch: 10 }, // I: ASTS (Rata Tengah)
-        { wch: 14 }, // J: RATA-RATA (Rata Tengah)
-        { wch: 10 }  // K: TREN (Rata Tengah)
+        { wch: 6 },  // A: NO
+        { wch: 16 }, // B: NISN
+        { wch: 35 }, // C: NAMA SISWA
+        { wch: 10 }, // D: KELAS
+        { wch: 16 }, // E: HISTORI RAPOR
+        { wch: 11 }, // F: TUGAS 1
+        { wch: 11 }, // G: TUGAS 2
+        { wch: 10 }, // H: ASH
+        { wch: 10 }, // I: ASTS
+        { wch: 14 }, // J: RATA-RATA
+        { wch: 10 }  // K: TREN
     ];
 
     const wb = XLSX.utils.book_new();
