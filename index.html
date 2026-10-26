@@ -216,6 +216,9 @@
     <button onclick="switchTab('inputNilaiTab')" id="btnTabNilai" class="tab-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 transition flex items-center justify-center gap-2">
         <i class="fa-solid fa-pen-to-square"></i> <span>Input Nilai</span>
     </button>
+    <button onclick="switchTab('downloadNilaiMapelTab')" id="btnTabDownloadMapel" class="tab-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl hover:bg-slate-100 text-slate-600 transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-file-export text-teal-600"></i> <span>Download Nilai</span>
+    </button>
     <button onclick="switchTab('inputWalasTab')" id="btnTabWalas" class="tab-btn flex-1 sm:flex-none px-4 py-2.5 rounded-xl hover:bg-slate-100 text-slate-600 transition flex items-center justify-center gap-2 hidden">
         <i class="fa-solid fa-clipboard-user"></i> <span>Absensi & Catatan</span>
     </button>
@@ -232,7 +235,7 @@
         <i class="fa-solid fa-gears text-amber-500"></i> <span>Admin</span>
     </button>
 </div>
-
+            
             <!-- TAB 1: INPUT NILAI -->
             <section id="inputNilaiTab" class="tab-content space-y-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -308,6 +311,36 @@
                     </div>
                 </div>
             </section>
+            <!-- TAB KHUSUS DOWNLOAD REKAP NILAI GURU MAPEL -->
+<section id="downloadNilaiMapelTab" class="tab-content hidden space-y-4">
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <h3 class="font-bold text-base text-slate-800 flex items-center gap-2 border-b pb-3">
+            <i class="fa-solid fa-file-export text-teal-600 text-lg"></i> Download Rekap Nilai Excel Mata Pelajaran
+        </h3>
+        <p class="text-xs text-slate-500">
+            Pilih Mata Pelajaran dan Kelas Target untuk mengunduh rekap nilai lengkap beserta rumus Rata-rata &amp; Tren dalam format Excel (.xlsx).
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Mata Pelajaran</label>
+                <select id="selectMapelDownload" onchange="onMapelDownloadChanged()" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-600">
+                    <option value="">-- Pilih Mapel --</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Kelas Target</label>
+                <select id="selectKelasDownload" class="w-full p-3 border-2 border-slate-300 rounded-xl text-sm bg-slate-50 font-bold outline-none focus:border-indigo-600">
+                    <option value="">-- Pilih Kelas --</option>
+                </select>
+            </div>
+            <div>
+                <button onclick="prosesDownloadExcelGuruMapel()" class="w-full bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold p-3 rounded-xl text-sm shadow-lg shadow-teal-100 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-file-excel text-base"></i> Download File Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
 
             <!-- TAB 2: ABSENSI & CATATAN WALAS -->
             <section id="inputWalasTab" class="tab-content hidden space-y-4">
@@ -755,6 +788,9 @@ function showToast(message, type = "info") {
         const selKelasWalas = document.getElementById("selectKelasWalas");
         const selKelasCetak = document.getElementById("selectKelasCetak");
         const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger");
+        
+        // Elemen Dropdown untuk Tab Download Rekap Mapel
+        const selMapelDownload = document.getElementById("selectMapelDownload");
 
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         const isAdmin = String(currentUser.role).toLowerCase() === "admin";
@@ -821,6 +857,7 @@ function showToast(message, type = "info") {
 
             // Banjirkan langsung ke DOM untuk Admin
             if (selMapel) selMapel.innerHTML = htmlMapel;
+            if (selMapelDownload) selMapelDownload.innerHTML = htmlMapel;
             if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
             if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
             if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
@@ -852,6 +889,7 @@ function showToast(message, type = "info") {
             htmlKelasGuru = '<option value="">-- Pilih Mapel Terlebih Dahulu --</option>';
 
             if (selMapel) selMapel.innerHTML = htmlMapel;
+            if (selMapelDownload) selMapelDownload.innerHTML = htmlMapel;
             if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
 
             // Jika user adalah Wali Kelas (Non-Admin)
@@ -866,7 +904,6 @@ function showToast(message, type = "info") {
 
                 if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalasBinaan;
                 if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasWalasBinaan;
-                // Masukkan opsi kelas binaan ke selectKelasEksporLeger
                 if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasWalasBinaan;
             }
         }
@@ -2498,6 +2535,137 @@ function hideLoadingOverlay() {
         overlay.classList.add("hidden");
         overlay.classList.remove("flex");
     }
+}
+        // Event saat Mapel di Tab Download dipilih
+function onMapelDownloadChanged() {
+    const mapelCode = document.getElementById("selectMapelDownload").value;
+    const selKelasDl = document.getElementById("selectKelasDownload");
+
+    if (!mapelCode) {
+        selKelasDl.innerHTML = '<option value="">-- Pilih Mapel Terlebih Dahulu --</option>';
+        return;
+    }
+
+    const isAdmin = String(currentUser.role).toLowerCase() === "admin";
+    let htmlOptions = '<option value="">-- Pilih Kelas --</option>';
+
+    if (isAdmin) {
+        const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
+        allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
+    } else {
+        const curUser = String(currentUser.username || "").trim().toLowerCase();
+        const myGuruRows = (masterData.guru || []).filter(r => String(r[0] || "").trim().toLowerCase() === curUser && String(r[3] || "").includes(mapelCode));
+        
+        const kelasSet = new Set();
+        myGuruRows.forEach(r => {
+            const kStr = String(r[2] || "").trim();
+            if (kStr) kStr.split(",").forEach(k => kelasSet.add(k.trim()));
+        });
+
+        if (kelasSet.size > 0) {
+            kelasSet.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
+        } else {
+            const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
+            allKelasList.forEach(k => htmlOptions += `<option value="${k}">${k}</option>`);
+        }
+    }
+
+    selKelasDl.innerHTML = htmlOptions;
+}
+
+// Proses Ekspor File Excel Rekap Mapel (Lengkap Rumus Average & Tren)
+function prosesDownloadExcelGuruMapel() {
+    const mapelCode = document.getElementById("selectMapelDownload").value;
+    const kelas = document.getElementById("selectKelasDownload").value;
+
+    if (!mapelCode || !kelas) {
+        showToast("Silakan pilih Mapel dan Kelas terlebih dahulu!", "warning");
+        return;
+    }
+
+    const semAktif = masterData.config.SEMESTER_AKTIF || "1";
+    const mapelName = MASTER_MAPEL_NAME[mapelCode] || mapelCode;
+
+    // Filter daftar nilai siswa berdasarkan Mapel & Semester Aktif
+    const listNilai = masterData.inputNilai.filter(r => 
+        String(r[3] || "").trim().toUpperCase() === String(mapelCode).trim().toUpperCase() &&
+        String(r[4] || "").trim() === String(semAktif).trim()
+    );
+
+    const listSiswaKelas = masterData.leger.slice(1).filter(r => String(r[3]).trim() === kelas);
+
+    if (listSiswaKelas.length === 0) {
+        showToast("Data siswa pada kelas tersebut tidak ditemukan!", "error");
+        return;
+    }
+
+    const lbl1 = masterData.config.LABEL_COL1 || "Nilai 1";
+    const lbl2 = masterData.config.LABEL_COL2 || "Nilai 2";
+    const lbl3 = masterData.config.LABEL_COL3 || "Nilai 3";
+    const lbl4 = masterData.config.LABEL_COL4 || "Nilai 4";
+
+    const isKelasX = String(kelas).trim().toUpperCase().startsWith("X-") || String(kelas).trim().toUpperCase() === "X";
+
+    const dataExcel = [
+        ["NO", "NISN", "NAMA SISWA", "KELAS", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"]
+    ];
+
+    let rowIdx = 2; // Header di baris 1 Excel, data mulai baris 2
+
+    listSiswaKelas.forEach((s, idx) => {
+        const nisn = s[0];
+        const nama = s[2];
+        const histVal = parseFloat(s[4] || s[5] || 0);
+
+        const rowNilai = listNilai.find(r => String(r[0]).trim() === String(nisn).trim());
+
+        const val1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : "";
+        const val2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : "";
+        const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : "";
+        const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : "";
+
+        // RUMUS EXCEL RATA-RATA: Kolom F (Nilai 1) s/d I (Nilai 4)
+        const rumusRataRata = `=IF(COUNT(F${rowIdx}:I${rowIdx})>0, ROUND(AVERAGE(F${rowIdx}:I${rowIdx}), 1), 0)`;
+
+        // RUMUS EXCEL TREN DINAMIS
+        let rumusTren = "";
+        if (isKelasX) {
+            rumusTren = `=IF(J${rowIdx}=0, "-", IF(OR(MIN(F${rowIdx}:I${rowIdx})<75, J${rowIdx}<75), "❌", "✔"))`;
+        } else {
+            rumusTren = `=IF(OR(J${rowIdx}=0, E${rowIdx}=0), "-", IF((J${rowIdx}-E${rowIdx})>0, CONCATENATE("▲ +", TEXT(J${rowIdx}-E${rowIdx}, "0.0")), IF((J${rowIdx}-E${rowIdx})<0, CONCATENATE("▼ ", TEXT(J${rowIdx}-E${rowIdx}, "0.0")), "▬ 0.0")))`;
+        }
+
+        dataExcel.push([
+            idx + 1,
+            nisn,
+            nama,
+            kelas,
+            histVal,
+            val1,
+            val2,
+            val3,
+            val4,
+            rumusRataRata,
+            rumusTren
+        ]);
+
+        rowIdx++;
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(dataExcel);
+    ws['!cols'] = [
+        { wch: 5 }, { wch: 16 }, { wch: 32 }, { wch: 10 }, 
+        { wch: 15 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, 
+        { wch: 10 }, { wch: 14 }, { wch: 16 }
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Nilai ${kelas}`);
+
+    const cleanMapel = mapelName.replace(/[^a-zA-Z0-9]/g, '_');
+    XLSX.writeFile(wb, `Rekap_Nilai_${cleanMapel}_Kelas_${kelas}.xlsx`);
+
+    showToast("File Rekap Nilai Excel berhasil diunduh!", "success");
 }
     </script>
     <!-- Modal Loading Import (Tengah Layar) -->
