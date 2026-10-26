@@ -2605,34 +2605,31 @@ function prosesDownloadExcelGuruMapel() {
 
     const isKelasX = String(kelas).trim().toUpperCase().startsWith("X-") || String(kelas).trim().toUpperCase() === "X";
 
-    // 1. STRUKTUR SHEET DENGAN JUDUL KOP DI ATAS (BARIS 2 & 3)
+    // 1. DATA ARRAY DENGAN TITLE KOP (BARIS 2 & 3)
     const dataExcel = [
-        [], // Baris 1 kosong
-        [`Rekap Nilai ${mapelName}`], // Baris 2: Judul Mapel
-        [`Kelas ${kelas}`],           // Baris 3: Judul Kelas
-        [], // Baris 4 kosong
-        ["NO", "NISN", "NAMA SISWA", "KELAS", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"] // Baris 5: Header Tabel
+        [],
+        [`Rekap Nilai ${mapelName}`],
+        [`Kelas ${kelas}`],
+        [],
+        ["NO", "NISN", "NAMA SISWA", "KELAS", "HISTORI RAPOR", lbl1, lbl2, lbl3, lbl4, "RATA-RATA", "TREN"]
     ];
 
     listSiswaKelas.forEach((s, idx) => {
-        // Karena ada KOP (Baris 2 & 3), maka data siswa pertama dimulai pada Baris 6 Excel
-        const rowNum = idx + 6;
-
+        const rowNum = idx + 6; // Data siswa dimulai pada Baris 6
         const nisn = String(s[0] || "");
         const nama = s[2];
         const histVal = parseFloat(s[4] || s[5] || 0);
 
         const rowNilai = listNilai.find(r => String(r[0]).trim() === String(nisn).trim());
 
-        const val1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : "";
-        const val2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : "";
-        const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : "";
-        const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : "";
+        const val1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : 0;
+        const val2 = rowNilai && rowNilai[6] !== "" && rowNilai[6] !== "-" ? parseFloat(rowNilai[6]) : 0;
+        const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
+        const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : 0;
 
-        // RUMUS EXCEL RATA-RATA (KOLOM J): Menghitung Nilai F s/d I
+        // RUMUS FORMULA EXCEL NATIVE
         const strRumusRataRata = `IF(COUNT(F${rowNum}:I${rowNum})>0, ROUND(AVERAGE(F${rowNum}:I${rowNum}), 1), 0)`;
-
-        // RUMUS EXCEL TREN (KOLOM K): Menggunakan Simbol Visual (✔ / ❌) atau Tren Angka
+        
         let strRumusTren = "";
         if (isKelasX) {
             strRumusTren = `IF(J${rowNum}=0, "-", IF(OR(MIN(F${rowNum}:I${rowNum})<75, J${rowNum}<75), "❌", "✔"))`;
@@ -2657,19 +2654,93 @@ function prosesDownloadExcelGuruMapel() {
 
     const ws = XLSX.utils.aoa_to_sheet(dataExcel);
 
-    // 2. LEBAR KOLOM SESUAI GAMBAR DOKUMEN PREVIEW
+    // DEFINISI BORDER TIPIS HITAM
+    const borderThin = {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+    };
+
+    // Styling Judul KOP (Baris 2 & 3)
+    if (ws["A2"]) ws["A2"].s = { font: { name: "Calibri", sz: 14, bold: true } };
+    if (ws["A3"]) ws["A3"].s = { font: { name: "Calibri", sz: 12, bold: true } };
+
+    const colLetters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"];
+
+    // 2. STYLING HEADER TABEL (BARIS 5) -> BIRU SOFT (B4D5E5) & RATA TENGAH
+    colLetters.forEach(col => {
+        const cellRef = `${col}5`;
+        if (ws[cellRef]) {
+            ws[cellRef].s = {
+                font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "000000" } },
+                fill: { fgColor: { rgb: "B4D5E5" } },
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                border: borderThin
+            };
+        }
+    });
+
+    // 3. STYLING SEL DATA SISWA (BARIS 6 DKK)
+    const totalRows = listSiswaKelas.length + 5;
+    for (let r = 6; r <= totalRows; r++) {
+        // Ambil nilai tugas untuk menentukan warna kelulusan
+        const valF = (ws[`F${r}`] && typeof ws[`F${r}`].v === 'number') ? ws[`F${r}`].v : 0;
+        const valG = (ws[`G${r}`] && typeof ws[`G${r}`].v === 'number') ? ws[`G${r}`].v : 0;
+        const valH = (ws[`H${r}`] && typeof ws[`H${r}`].v === 'number') ? ws[`H${r}`].v : 0;
+        const valI = (ws[`I${r}`] && typeof ws[`I${r}`].v === 'number') ? ws[`I${r}`].v : 0;
+
+        const vals = [valF, valG, valH, valI];
+        const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+        const isPass = avg >= 75 && vals.every(v => v >= 75);
+
+        // Warna Sel Rata-Rata & Tren: Hijau Soft (D9EAD3) / Merah Soft (F4CCCC)
+        const rowBgColor = isPass ? "D9EAD3" : "F4CCCC";
+
+        colLetters.forEach((col) => {
+            const cellRef = `${col}${r}`;
+            if (!ws[cellRef]) return;
+
+            // PENGATURAN ALIGNMENT (NAMA SISWA [C] RATA KIRI, KELAS/NILAI/TREN/RATA-RATA RATA TENGAH)
+            const isLeftAlign = (col === "C");
+            
+            ws[cellRef].s = {
+                font: { name: "Calibri", sz: 11 },
+                alignment: { 
+                    horizontal: isLeftAlign ? "left" : "center", 
+                    vertical: "center" 
+                },
+                border: borderThin
+            };
+
+            // Beri warna latar khusus pada Kolom J (RATA-RATA) & K (TREN)
+            if (col === "J" || col === "K") {
+                ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
+                if (col === "K") {
+                    ws[cellRef].s.font = { 
+                        name: "Calibri", 
+                        sz: 12, 
+                        bold: true, 
+                        color: { rgb: isPass ? "0070C0" : "C00000" } 
+                    };
+                }
+            }
+        });
+    }
+
+    // LEBAR KOLOM EXCEL
     ws['!cols'] = [
-        { wch: 6 },  // A: NO
-        { wch: 16 }, // B: NISN
-        { wch: 35 }, // C: NAMA SISWA
-        { wch: 10 }, // D: KELAS
-        { wch: 16 }, // E: HISTORI RAPOR
-        { wch: 11 }, // F: TUGAS 1 / TP1
-        { wch: 11 }, // G: TUGAS 2 / TP2
-        { wch: 10 }, // H: ASH / Nilai 3
-        { wch: 10 }, // I: ASTS / Nilai 4
-        { wch: 14 }, // J: RATA-RATA
-        { wch: 10 }  // K: TREN
+        { wch: 6 },  // A: NO (Rata Tengah)
+        { wch: 16 }, // B: NISN (Rata Tengah)
+        { wch: 35 }, // C: NAMA SISWA (Rata Kiri)
+        { wch: 10 }, // D: KELAS (Rata Tengah)
+        { wch: 16 }, // E: HISTORI RAPOR (Rata Tengah)
+        { wch: 11 }, // F: TUGAS 1 (Rata Tengah)
+        { wch: 11 }, // G: TUGAS 2 (Rata Tengah)
+        { wch: 10 }, // H: ASH (Rata Tengah)
+        { wch: 10 }, // I: ASTS (Rata Tengah)
+        { wch: 14 }, // J: RATA-RATA (Rata Tengah)
+        { wch: 10 }  // K: TREN (Rata Tengah)
     ];
 
     const wb = XLSX.utils.book_new();
