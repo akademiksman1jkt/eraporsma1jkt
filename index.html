@@ -2639,12 +2639,12 @@ function prosesDownloadExcelGuruMapel() {
         const nisn = String(s[0] || "");
         const nama = s[2];
 
-        // LOGIKA PENARIKAN NILAI RAPOR TERAKHIR (DARI KANAN KE KIRI)
+        // LOGIKA PENARIKAN NILAI RAPOR TERAKHIR (BULAT)
         let histVal = 0;
         for (let colIdx = 8; colIdx >= 4; colIdx--) {
             const val = parseFloat(s[colIdx]);
             if (!isNaN(val) && val > 0) {
-                histVal = Math.round(val); // Ambil nilai bulat dari semester terakhir yang ada
+                histVal = Math.round(val);
                 break;
             }
         }
@@ -2714,7 +2714,6 @@ function prosesDownloadExcelGuruMapel() {
     listSiswaKelas.forEach((s, idx) => {
         const r = idx + 6;
         
-        // Ambil nilai dari array lokal untuk menentukan status kelulusan warna
         const nisn = String(s[0] || "");
         const rowNilai = listNilai.find(rn => String(rn[0]).trim() === String(nisn).trim());
         const v1 = rowNilai && rowNilai[5] !== "" && rowNilai[5] !== "-" ? parseFloat(rowNilai[5]) : 0;
@@ -2725,17 +2724,13 @@ function prosesDownloadExcelGuruMapel() {
         const vals = [v1, v2, v3, v4];
         const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
 
-        // Ambil histVal lagi untuk evaluasi kelas XI
         let histVal = 0;
         for (let colIdx = 8; colIdx >= 4; colIdx--) {
             const val = parseFloat(s[colIdx]);
             if (!isNaN(val) && val > 0) { histVal = Math.round(val); break; }
         }
 
-        // Cek Kelulusan Warna: Kelas X (KKM >= 75), Kelas XI/XII (Rata-rata >= Histori Rapor)
         const isPass = isKelasX ? (avg >= 75 && vals.every(v => v >= 75)) : (avg >= histVal);
-
-        // Warna Sel Rata-Rata & Tren: Hijau Soft (D9EAD3) / Merah Soft (F4CCCC)
         const rowBgColor = isPass ? "D9EAD3" : "F4CCCC";
 
         colLetters.forEach((col) => {
@@ -2753,7 +2748,13 @@ function prosesDownloadExcelGuruMapel() {
                 border: borderThin
             };
 
-            // Khusus Kolom J (RATA-RATA) & K (TREN) diberi warna latar
+            // WARNA WARNI KHUSUS:
+            // - Kolom E (HISTORI RAPOR): Warna Biru Soft (B4D5E5)
+            if (col === "E") {
+                ws[cellRef].s.fill = { fgColor: { rgb: "B4D5E5" } };
+            }
+
+            // - Kolom J (RATA-RATA) & K (TREN): Hijau/Merah Soft
             if (col === "J" || col === "K") {
                 ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
                 if (col === "K") {
@@ -2766,6 +2767,15 @@ function prosesDownloadExcelGuruMapel() {
                 }
             }
         });
+
+        // PERINGATAN HOVER/COMMENT PADA KOLOM HISTORI RAPOR (KOLOM E)
+        const cellE = ws[`E${r}`];
+        if (cellE) {
+            cellE.c = [{
+                t: "PERINGATAN: Nilai Histori Rapor bersumber langsung dari Leger Master. Harap berhati-hati saat mengubah angka ini.",
+                hidden: true
+            }];
+        }
     });
 
     // LEBAR KOLOM EXCEL
