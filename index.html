@@ -372,7 +372,7 @@
         </section>
 
             <!-- TAB 3: CETAK RAPOR PTS -->
-<section id="cetakRaporTab" class="tab-content hidden space-y-4">
+            <section id="cetakRaporTab" class="tab-content hidden space-y-4">
                 <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end no-print">
                     
                     <!-- PENGATURAN DATA SISWA -->
@@ -458,6 +458,31 @@
                     <div class="bg-white p-12 rounded-2xl shadow-lg border border-slate-200 max-w-4xl mx-auto text-center text-slate-400">
                         <i class="fa-solid fa-print text-5xl mb-3 text-indigo-300"></i>
                         <p class="font-medium text-slate-600">Pilih mode cetak, kelas, lalu tekan <b>Tampilkan Preview</b> untuk memuat Rapor PTS.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- TAMBAHKAN SECTION TAB EKSPOR LEGER DI SINI -->
+            <!-- ========================================================= -->
+            <section id="legerWalasTab" class="tab-content hidden space-y-4">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="font-bold text-base text-slate-800 flex items-center gap-2 border-b pb-3">
+                        <i class="fa-solid fa-file-excel text-emerald-600 text-lg"></i> Ekspor Leger Nilai Kelas (Semua Mapel)
+                    </h3>
+                    <p class="text-xs text-slate-500">
+                        Unduh akumulasi seluruh nilai siswa kelas dalam format spreadsheet Excel (.xlsx).
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-3 items-end">
+                        <div class="flex-1 w-full">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pilih Kelas</label>
+                            <select id="selectKelasEksporLeger" class="w-full p-3 border-2 border-slate-300 rounded-xl bg-slate-50 font-bold text-sm outline-none focus:border-indigo-600">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <button onclick="eksporLegerWalas()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-6 py-3 rounded-xl text-sm shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-excel text-base"></i> Ekspor Leger Nilai
+                        </button>
                     </div>
                 </div>
             </section>
@@ -730,7 +755,6 @@ function showToast(message, type = "info") {
         const selKelasWalas = document.getElementById("selectKelasWalas");
         const selKelasCetak = document.getElementById("selectKelasCetak");
         const selKelasEksporLeger = document.getElementById("selectKelasEksporLeger");
-        const selKelasLegerWalas = document.getElementById("selectKelasEksporLegerWalas");
 
         const allKelasList = [...new Set(masterData.leger.slice(1).map(r => r[3]))].filter(Boolean);
         const isAdmin = String(currentUser.role).toLowerCase() === "admin";
@@ -782,22 +806,7 @@ function showToast(message, type = "info") {
         let htmlKelasCetak = '<option value="">-- Pilih Kelas --</option>';
         let htmlKelasLeger = '<option value="">-- Pilih Kelas --</option>';
 
-        // Pengisian Khusus Wali Kelas Non-Admin
-        if (isWaliKelas && !isAdmin) {
-            let htmlKelasWalasBinaan = `<option value="">-- Pilih Kelas Binaan --</option>`;
-            myWalasRows.forEach(row => {
-                const kelasBinaan = row[0];
-                if (kelasBinaan) {
-                    htmlKelasWalasBinaan += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
-                }
-            });
-
-            if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalasBinaan;
-            if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasWalasBinaan;
-            if (selKelasLegerWalas) selKelasLegerWalas.innerHTML = htmlKelasWalasBinaan;
-        }
-
-        // Percabangan Pengisian Dropdown Utama (Admin / Guru)
+        // Percabangan Pengisian Dropdown Utama (Admin / Wali Kelas / Guru)
         if (isAdmin) {
             Object.keys(MASTER_MAPEL_NAME).forEach(code => {
                 htmlMapel += `<option value="${code}">${MASTER_MAPEL_NAME[code]}</option>`;
@@ -809,7 +818,16 @@ function showToast(message, type = "info") {
                 htmlKelasCetak += opt;
                 htmlKelasLeger += opt;
             });
+
+            // Banjirkan langsung ke DOM untuk Admin
+            if (selMapel) selMapel.innerHTML = htmlMapel;
+            if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
+            if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
+            if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
+            if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasLeger;
+
         } else {
+            // Pengisian Mapel untuk Guru
             const myGuruRows = (masterData.guru.length > 0 ? masterData.guru : []).filter(r => {
                 return String(r[0] || "").trim().toLowerCase() === curUser;
             });
@@ -832,15 +850,25 @@ function showToast(message, type = "info") {
                 }
             });
             htmlKelasGuru = '<option value="">-- Pilih Mapel Terlebih Dahulu --</option>';
-        }
 
-        // BANJIRKAN KE DOM (Hanya untuk Admin/Guru)
-        if (selMapel) selMapel.innerHTML = htmlMapel;
-        if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
-        if (isAdmin) {
-            if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalas;
-            if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasCetak;
-            if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasLeger;
+            if (selMapel) selMapel.innerHTML = htmlMapel;
+            if (selKelasGuru) selKelasGuru.innerHTML = htmlKelasGuru;
+
+            // Jika user adalah Wali Kelas (Non-Admin)
+            if (isWaliKelas) {
+                let htmlKelasWalasBinaan = `<option value="">-- Pilih Kelas Binaan --</option>`;
+                myWalasRows.forEach(row => {
+                    const kelasBinaan = row[0];
+                    if (kelasBinaan) {
+                        htmlKelasWalasBinaan += `<option value="${kelasBinaan}">${kelasBinaan}</option>`;
+                    }
+                });
+
+                if (selKelasWalas) selKelasWalas.innerHTML = htmlKelasWalasBinaan;
+                if (selKelasCetak) selKelasCetak.innerHTML = htmlKelasWalasBinaan;
+                // Masukkan opsi kelas binaan ke selectKelasEksporLeger
+                if (selKelasEksporLeger) selKelasEksporLeger.innerHTML = htmlKelasWalasBinaan;
+            }
         }
 
     } catch (err) {
@@ -2372,7 +2400,8 @@ function formatNilai(val) {
     showToast(`Leger Nilai Excel Kelas ${kelas} berhasil diunduh!`, "success");
 }
         function eksporLegerWalas() {
-    const selectElem = document.getElementById("selectKelasEksporLegerWalas");
+    // Membaca ID selectKelasEksporLeger (atau fallback ke selectKelasEksporLegerWalas jika ada)
+    const selectElem = document.getElementById("selectKelasEksporLeger") || document.getElementById("selectKelasEksporLegerWalas");
     const kelasSelected = selectElem ? selectElem.value : "";
 
     if (!kelasSelected) {
@@ -2385,6 +2414,8 @@ function formatNilai(val) {
         eksporLegerNilaiKelas(kelasSelected);
     } else if (typeof eksporLegerExcel === "function") {
         eksporLegerExcel(kelasSelected);
+    } else {
+        showToast("Fungsi ekspor leger belum tersedia!", "error");
     }
 }
         function formatNISN(nisn) {
