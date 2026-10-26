@@ -2635,7 +2635,7 @@ function prosesDownloadExcelGuruMapel() {
     ];
 
     listSiswaKelas.forEach((s, idx) => {
-        const rowNum = idx + 6; // Data siswa dimulai pada Baris 6
+        const rowNum = idx + 6;
         const nisn = String(s[0] || "");
         const nama = s[2];
 
@@ -2656,7 +2656,6 @@ function prosesDownloadExcelGuruMapel() {
         const val3 = rowNilai && rowNilai[7] !== "" && rowNilai[7] !== "-" ? parseFloat(rowNilai[7]) : 0;
         const val4 = rowNilai && rowNilai[8] !== "" && rowNilai[8] !== "-" ? parseFloat(rowNilai[8]) : 0;
 
-        // RUMUS FORMULA EXCEL NATIVE
         const strRumusRataRata = `IF(COUNT(F${rowNum}:I${rowNum})>0, ROUND(AVERAGE(F${rowNum}:I${rowNum}), 1), 0)`;
         
         let strRumusTren = "";
@@ -2676,14 +2675,13 @@ function prosesDownloadExcelGuruMapel() {
             val2,
             val3,
             val4,
-            { t: 'n', f: strRumusRataRata }, // Kolom J (RATA-RATA)
-            { t: 's', f: strRumusTren }     // Kolom K (TREN)
+            { t: 'n', f: strRumusRataRata },
+            { t: 's', f: strRumusTren }
         ]);
     });
 
     const ws = XLSX.utils.aoa_to_sheet(dataExcel);
 
-    // BORDER TIPIS HITAM
     const borderThin = {
         top: { style: "thin", color: { rgb: "000000" } },
         bottom: { style: "thin", color: { rgb: "000000" } },
@@ -2691,7 +2689,6 @@ function prosesDownloadExcelGuruMapel() {
         right: { style: "thin", color: { rgb: "000000" } }
     };
 
-    // Styling Judul KOP (Baris 2 & 3)
     if (ws["A2"]) ws["A2"].s = { font: { name: "Calibri", sz: 14, bold: true } };
     if (ws["A3"]) ws["A3"].s = { font: { name: "Calibri", sz: 12, bold: true } };
 
@@ -2710,7 +2707,7 @@ function prosesDownloadExcelGuruMapel() {
         }
     });
 
-    // 3. STYLING SEL DATA SISWA (BARIS 6 DKK)
+    // 3. STYLING SEL DATA SISWA DAN PENGATURAN KUNCI SEL (PROTECTION)
     listSiswaKelas.forEach((s, idx) => {
         const r = idx + 6;
         
@@ -2739,21 +2736,28 @@ function prosesDownloadExcelGuruMapel() {
 
             const isLeftAlign = (col === "C");
             
+            // Kolom F, G, H, I (Nilai 1 s.d. 4) BISA DIEDIT (locked: false)
+            // Kolom A, B, C, D, E, J, K DILINDUNGI (locked: true)
+            const isEditableColumn = ["F", "G", "H", "I"].includes(col);
+
             ws[cellRef].s = {
                 font: { name: "Calibri", sz: 11 },
                 alignment: { 
                     horizontal: isLeftAlign ? "left" : "center", 
                     vertical: "center" 
                 },
-                border: borderThin
+                border: borderThin,
+                protection: {
+                    locked: !isEditableColumn // Kunci sel jika bukan kolom nilai
+                }
             };
 
-            // WARNA BIRU SOFT UNTUK KOLOM E (HISTORI RAPOR)
+            // Warna Biru Soft untuk Kolom E (HISTORI RAPOR)
             if (col === "E") {
                 ws[cellRef].s.fill = { fgColor: { rgb: "B4D5E5" } };
             }
 
-            // WARNA HIJAU/MERAH SOFT UNTUK KOLOM J & K
+            // Warna Hijau/Merah Soft untuk Kolom J & K
             if (col === "J" || col === "K") {
                 ws[cellRef].s.fill = { fgColor: { rgb: rowBgColor } };
                 if (col === "K") {
@@ -2768,21 +2772,22 @@ function prosesDownloadExcelGuruMapel() {
         });
     });
 
-    // 4. MEMASANG POP-UP PERINGATAN DIALOG (DATA VALIDATION WARNING ALERT)
-    const startRow = 6;
-    const endRow = listSiswaKelas.length + 5;
-    
-    if (!ws['!dataValidation']) ws['!dataValidation'] = [];
-    ws['!dataValidation'].push({
-        sqref: `E${startRow}:E${endRow}`, // Diberlakukan untuk seluruh sel kolom HISTORI RAPOR
-        type: 'custom',
-        operator: 'equal',
-        allowBlank: true,
-        showErrorMessage: true,
-        errorStyle: 'warning', // Menampilkan Dialog Warning dengan pilihan Yes / No
-        errorTitle: 'Peringatan Perubahan Data!',
-        error: 'Nilai Histori Rapor bersumber dari Leger Master. Apakah Anda yakin ingin mengganti angka ini?'
-    });
+    // 4. AKTIFKAN PROTEKSI SHEET EXCEL
+    ws['!protect'] = {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: false,
+        formatColumns: false,
+        formatRows: false,
+        insertColumns: false,
+        insertRows: false,
+        insertHyperlinks: false,
+        deleteColumns: false,
+        deleteRows: false,
+        sort: false,
+        autoFilter: false,
+        pivotTables: false
+    };
 
     // LEBAR KOLOM EXCEL
     ws['!cols'] = [
