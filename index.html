@@ -1009,7 +1009,9 @@ function showToast(message, type = "info") {
         const n3 = existing ? existing[7] : "";
         const n4 = existing ? existing[8] : "";
         const nRata = existing ? existing[9] : "-";
-        const valHistoriNum = nilaiHistoriTerakhir !== '-' ? nilaiHistoriTerakhir : 0;
+        
+        // PERBAIKAN 2: Pastikan konversi angka murni (float/number) aman dari NaN dan string
+        const valHistoriNum = (nilaiHistoriTerakhir !== '-' && !isNaN(parseFloat(nilaiHistoriTerakhir))) ? parseFloat(nilaiHistoriTerakhir) : 0;
 
         tbodyHTML += `
             <tr class="hover:bg-indigo-50/50 transition row-siswa" data-nisn="${nisn}" data-nama="${nama}" data-kelas="${kelas}">
@@ -1404,32 +1406,56 @@ function showToast(message, type = "info") {
 }
 
         function hitungRataAuto(nisn, nilaiLalu) {
-            const v1 = parseFloat(document.getElementById(`n1_${nisn}`).value);
-            const v2 = parseFloat(document.getElementById(`n2_${nisn}`).value);
-            const v3 = parseFloat(document.getElementById(`n3_${nisn}`).value);
-            const v4 = parseFloat(document.getElementById(`n4_${nisn}`).value);
+    const v1 = parseFloat(document.getElementById(`n1_${nisn}`).value);
+    const v2 = parseFloat(document.getElementById(`n2_${nisn}`).value);
+    const v3 = parseFloat(document.getElementById(`n3_${nisn}`).value);
+    const v4 = parseFloat(document.getElementById(`n4_${nisn}`).value);
 
-            let vals = [v1, v2, v3, v4].filter(n => !isNaN(n));
-            const labelRata = document.getElementById(`rata_${nisn}`);
-            const labelTren = document.getElementById(`labelTren_${nisn}`);
+    let vals = [v1, v2, v3, v4].filter(n => !isNaN(n));
+    const labelRata = document.getElementById(`rata_${nisn}`);
+    const labelTren = document.getElementById(`labelTren_${nisn}`);
 
-            if (vals.length === 0) {
-                labelRata.innerText = "-";
-                labelTren.innerHTML = `<span class="text-slate-400">-</span>`;
-                return;
-            }
+    if (vals.length === 0) {
+        labelRata.innerText = "-";
+        labelTren.innerHTML = `<span class="text-slate-400">-</span>`;
+        return;
+    }
 
-            const rata = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
-            labelRata.innerText = rata;
+    const rataNum = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const rata = rataNum.toFixed(1);
+    labelRata.innerText = rata;
 
-            if (rata > nilaiLalu) {
-                labelTren.innerHTML = `<span class="text-emerald-600 flex items-center justify-center gap-1 font-bold"><i class="fa-solid fa-arrow-trend-up"></i> +${(rata - nilaiLalu).toFixed(1)}</span>`;
-            } else if (rata < nilaiLalu) {
-                labelTren.innerHTML = `<span class="text-rose-600 flex items-center justify-center gap-1 font-bold"><i class="fa-solid fa-arrow-trend-down"></i> ${(rata - nilaiLalu).toFixed(1)}</span>`;
-            } else {
-                labelTren.innerHTML = `<span class="text-slate-500 font-bold"><i class="fa-solid fa-minus"></i> Tetap</span>`;
-            }
+    // Ambil kelas target untuk mendeteksi apakah Kelas X
+    const selectKelas = document.getElementById("selectKelasGuru");
+    const kelasStr = selectKelas ? selectKelas.value.trim().toUpperCase() : "";
+    const isKelasX = kelasStr.startsWith("X-") || kelasStr === "X";
+
+    if (isKelasX) {
+        // Logika Tren / Ketercapaian untuk Kelas X (Berdasarkan KKM 75)
+        const adaMerah = vals.some(n => n < 75);
+        if (adaMerah || rataNum < 75) {
+            labelTren.innerHTML = `<span class="text-rose-600 font-extrabold flex items-center justify-center gap-1"><i class="fa-solid fa-circle-xmark"></i> Belum Tuntas</span>`;
+        } else {
+            labelTren.innerHTML = `<span class="text-emerald-600 font-extrabold flex items-center justify-center gap-1"><i class="fa-solid fa-circle-check"></i> Tuntas</span>`;
         }
+    } else {
+        // Logika Tren Selisih Nilai untuk Kelas XI & XII
+        const nLalu = parseFloat(nilaiLalu) || 0;
+        if (nLalu === 0) {
+            labelTren.innerHTML = `<span class="text-slate-400">-</span>`;
+            return;
+        }
+
+        const selisih = parseFloat((rataNum - nLalu).toFixed(1));
+        if (selisih > 0) {
+            labelTren.innerHTML = `<span class="text-emerald-600 flex items-center justify-center gap-1 font-bold"><i class="fa-solid fa-arrow-trend-up"></i> +${selisih}</span>`;
+        } else if (selisih < 0) {
+            labelTren.innerHTML = `<span class="text-rose-600 flex items-center justify-center gap-1 font-bold"><i class="fa-solid fa-arrow-trend-down"></i> ${selisih}</span>`;
+        } else {
+            labelTren.innerHTML = `<span class="text-slate-500 font-bold"><i class="fa-solid fa-minus"></i> Tetap</span>`;
+        }
+    }
+}
 
         async function simpanSemuaNilaiBatch() {
     const mapel = document.getElementById("selectMapelGuru").value;
