@@ -1890,13 +1890,18 @@ function showToast(message, type = "info") {
 
     const isKelasX = String(kelas || "").trim().toUpperCase().startsWith("X-") || String(kelas || "").trim().toUpperCase() === "X";
 
+    // Daftar acuan header mapel untuk mencari indeks histori nilai di leger
+    const DAFTAR_MAPEL_HEADER = [
+        "AGM", "PCSL", "BIND", "MTK", "BING", "PJOK", "SEJ", "SB", 
+        "IPA", "IPS", "BIO", "KIMIA", "FISIKA", "MATLAN", "BJPG", 
+        "PKWU", "SEJLNJT", "SOS", "EKO", "GEO", "INF"
+    ];
+
     containerPrint.innerHTML = "";
     siswaTarget.forEach((s) => {
         const nisn = s[0];
         const nis = s[1] || "-";
         const nama = s[2];
-
-        const nilaiHistoriSiswa = parseFloat(s[4] || s[5] || 0);
 
         const rawNilaiSiswaList = masterData.inputNilai.filter(r => 
             String(r[0]).trim() === String(nisn).trim() && 
@@ -1980,6 +1985,23 @@ function showToast(message, type = "info") {
                 const val4 = nItem[8] || "-";
                 const nilaiRata = parseFloat(nItem[9]) || 0;
 
+                // EKSTRAKSI HISTORI NILAI MAPEL SPESIFIK
+                let targetHeader = mapelCode.startsWith("AGM") ? "AGM" : mapelCode;
+                const mapelIndex = DAFTAR_MAPEL_HEADER.indexOf(targetHeader);
+                let nilaiHistoriMapelIni = 0;
+
+                if (mapelIndex !== -1) {
+                    const startColIdx = 6 + (mapelIndex * 6);
+                    const endColIdx = startColIdx + 5;
+                    for (let c = endColIdx; c >= startColIdx; c--) {
+                        const val = s[c];
+                        if (val !== undefined && val !== "" && val !== null && parseFloat(val) > 0) {
+                            nilaiHistoriMapelIni = parseFloat(val);
+                            break;
+                        }
+                    }
+                }
+
                 let trenVal = "-";
                 let trenClass = "text-slate-800";
 
@@ -2002,8 +2024,9 @@ function showToast(message, type = "info") {
                         trenClass = "text-slate-400 font-medium";
                     }
                 } else {
-                    if (nilaiRata > 0 && nilaiHistoriSiswa > 0) {
-                        const diff = (nilaiRata - nilaiHistoriSiswa).toFixed(1);
+                    // MEMBANDINGKAN DENGAN HISTORI MAPEL SPESIFIK
+                    if (nilaiRata > 0 && nilaiHistoriMapelIni > 0) {
+                        const diff = parseFloat((nilaiRata - nilaiHistoriMapelIni).toFixed(1));
                         if (diff > 0) {
                             trenVal = `<span class="flex items-center justify-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> +${diff}</span>`;
                             trenClass = "text-emerald-600 font-extrabold";
@@ -2035,7 +2058,7 @@ function showToast(message, type = "info") {
                         <td class="p-1.5 border-r border-indigo-200">${formatNilai(val3, false)}</td>
                         <td class="p-1.5 border-r-2 border-indigo-300">${formatNilai(val4, false)}</td>
                         <td class="p-1.5 border-r-2 border-indigo-300 bg-indigo-50/70">${formatNilai(nItem[9], true)}</td>
-                        <td class="p-1 w-12 text-center ${trenClass}">${trenVal}</td>
+                        <td class="p-1 w-14 text-center ${trenClass}">${trenVal}</td>
                     </tr>
                 `;
             });
